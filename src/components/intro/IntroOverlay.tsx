@@ -40,14 +40,6 @@ export function IntroOverlay() {
               </div>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={dismiss}
-            className="absolute bottom-6 right-6 z-10 px-4 py-2 rounded-full bg-white/10 text-white text-sm backdrop-blur hover:bg-white/20 transition"
-          >
-            Пропустить
-          </button>
         </motion.div>
       )}
     </AnimatePresence>
