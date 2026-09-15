@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { MoneyInput } from '../common/MoneyInput'
 import { getErrorMessage, formatMoney } from '../../lib/formatters'
 import {
   useDeleteEmployee,
@@ -147,12 +148,10 @@ export function PayrollWidget() {
             onChange={(e) => setAddingName(e.target.value)}
             className="border border-brand-border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-brand-yellow"
           />
-          <input
-            type="number"
+          <MoneyInput
             placeholder="Оклад"
-            value={addingSalary || ''}
-            onFocus={(e) => e.target.select()}
-            onChange={(e) => setAddingSalary(Number(e.target.value))}
+            value={addingSalary}
+            onChange={setAddingSalary}
             className="border border-brand-border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-brand-yellow"
           />
           <input

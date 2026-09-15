@@ -154,9 +154,9 @@ export function RawMaterialsPage() {
             <div className="grid grid-cols-2 gap-3">
               <FormField
                 label="Цена за единицу"
-                type="number"
+                money
                 value={editing.unit_price ?? 0}
-                onChange={(e) => setEditing({ ...editing, unit_price: Number(e.target.value) })}
+                onMoneyChange={(v) => setEditing({ ...editing, unit_price: v })}
               />
               <FormField
                 label="Граммаж, г/м² (для бумаги)"

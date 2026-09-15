@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FormField } from '../components/common/FormField'
+import { MoneyInput } from '../components/common/MoneyInput'
 import { CalculatorMaterialHintPanel } from '../components/orders/CalculatorMaterialHintPanel'
 import { supabase } from '../lib/supabaseClient'
 import { getErrorMessage, formatMoney, formatNumber, formatDate } from '../lib/formatters'
@@ -850,9 +851,9 @@ export function OrderCalculatorPage() {
                 <NumField label="Количество цветов" value={colors} onChange={setColors} />
               )}
               {(printType === 'offset' || printType === 'service') && (
-                <NumField label={printType === 'offset' ? 'Офсет, сум/лист (0=авто)' : 'Цена услуги, сум/короб.'} value={printRate} onChange={setPrintRate} />
+                <NumField label={printType === 'offset' ? 'Офсет, сум/лист (0=авто)' : 'Цена услуги, сум/короб.'} value={printRate} onChange={setPrintRate} money />
               )}
-              {printType !== 'none' && <NumField label="Клише, сум" value={plateFee} onChange={setPlateFee} />}
+              {printType !== 'none' && <NumField label="Клише, сум" value={plateFee} onChange={setPlateFee} money />}
             </div>
 
             <div className="mt-4">
@@ -898,7 +899,7 @@ export function OrderCalculatorPage() {
               {pricingMode === 'margin' ? (
                 <NumField label="Целевая маржа, %" value={margin} onChange={setMargin} />
               ) : (
-                <NumField label="Цена с НДС, сум/короб." value={manualPrice} onChange={setManualPrice} />
+                <NumField label="Цена с НДС, сум/короб." value={manualPrice} onChange={setManualPrice} money />
               )}
             </div>
             <div className="grid sm:grid-cols-2 gap-3 mb-3">
@@ -918,8 +919,8 @@ export function OrderCalculatorPage() {
               </label>
             </div>
             <div className="grid sm:grid-cols-2 gap-3 mb-3">
-              <NumField label="Логистика, сум" value={logistics} onChange={setLogistics} />
-              <NumField label="Доставка, сум" value={deliveryCost} onChange={setDeliveryCost} />
+              <NumField label="Логистика, сум" value={logistics} onChange={setLogistics} money />
+              <NumField label="Доставка, сум" value={deliveryCost} onChange={setDeliveryCost} money />
             </div>
             <div className="grid sm:grid-cols-2 gap-3 mb-3">
               <NumField label="Срок, раб. дней" value={leadTime} onChange={setLeadTime} />
@@ -1052,17 +1053,35 @@ export function OrderCalculatorPage() {
   )
 }
 
-function NumField({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+function NumField({
+  label,
+  value,
+  onChange,
+  money,
+}: {
+  label: string
+  value: number
+  onChange: (v: number) => void
+  money?: boolean
+}) {
   return (
     <label className="flex flex-col gap-1">
       <span className="text-xs text-brand-gray-dark">{label}</span>
-      <input
-        type="number"
-        value={value}
-        onFocus={(e) => e.target.select()}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="border border-brand-border rounded-lg px-2 py-1.5 text-sm outline-none focus:border-brand-yellow"
-      />
+      {money ? (
+        <MoneyInput
+          value={value}
+          onChange={onChange}
+          className="border border-brand-border rounded-lg px-2 py-1.5 text-sm outline-none focus:border-brand-yellow"
+        />
+      ) : (
+        <input
+          type="number"
+          value={value}
+          onFocus={(e) => e.target.select()}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="border border-brand-border rounded-lg px-2 py-1.5 text-sm outline-none focus:border-brand-yellow"
+        />
+      )}
     </label>
   )
 }

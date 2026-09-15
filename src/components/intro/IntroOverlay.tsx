@@ -26,7 +26,7 @@ export function IntroOverlay() {
           />
           <div className="absolute inset-0 bg-black/35 z-0" />
 
-          <div className="absolute inset-0 z-10 flex items-center justify-center px-6">
+          <div className="absolute inset-x-0 top-3/4 -translate-y-1/2 z-10 flex justify-center px-6">
             <div className="w-72 flex flex-col items-center gap-2">
               <span className="text-[11px] uppercase tracking-[0.2em] text-white/70">Загрузка</span>
               <div className="w-full h-1.5 rounded-full bg-white/20 overflow-hidden backdrop-blur-sm">

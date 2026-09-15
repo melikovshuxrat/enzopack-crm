@@ -217,9 +217,9 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
             />
             <FormField
               label="Цена за единицу"
-              type="number"
+              money
               value={unitPrice}
-              onChange={(e) => setUnitPrice(Number(e.target.value))}
+              onMoneyChange={(v) => setUnitPrice(v)}
             />
           </div>
 

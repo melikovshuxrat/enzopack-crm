@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { KpiCard } from '../components/common/KpiCard'
+import { MoneyInput } from '../components/common/MoneyInput'
 import { formatDate, formatMoney } from '../lib/formatters'
 import {
   useCashBalance,
@@ -26,7 +27,7 @@ export function FinancePage() {
   const create = useCreateFinanceTransaction()
   const del = useDeleteFinanceTransaction()
 
-  const [amount, setAmount] = useState('')
+  const [amount, setAmount] = useState(0)
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('')
 
@@ -34,12 +35,12 @@ export function FinancePage() {
     if (!amount || tab === 'cash') return
     await create.mutateAsync({
       type: tab,
-      amount: Number(amount),
+      amount,
       description: description || null,
       category: category || null,
       transaction_date: new Date().toISOString().slice(0, 10),
     })
-    setAmount('')
+    setAmount(0)
     setDescription('')
     setCategory('')
   }
@@ -49,8 +50,8 @@ export function FinancePage() {
       <h1 className="text-2xl font-bold text-brand-ink mb-6">Финансы</h1>
 
       <div className="flex gap-3 mb-6">
-        <KpiCard label="Приход" value={formatMoney(balance?.income ?? 0)} />
-        <KpiCard label="Расход" value={formatMoney(balance?.expense ?? 0)} />
+        <KpiCard label="Приход" value={formatMoney(balance?.income ?? 0)} tone="income" />
+        <KpiCard label="Расход" value={formatMoney(balance?.expense ?? 0)} tone="expense" />
         <KpiCard label="Касса" value={formatMoney(balance?.balance ?? 0)} />
       </div>
 
@@ -75,10 +76,9 @@ export function FinancePage() {
         <div className="flex flex-wrap items-end gap-2 bg-white border border-brand-border rounded-xl p-3 mb-4">
           <label className="flex flex-col gap-1">
             <span className="text-xs text-brand-gray-dark">Сумма</span>
-            <input
-              type="number"
+            <MoneyInput
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={setAmount}
               className="border border-brand-border rounded-lg px-3 py-1.5 text-sm w-32 outline-none focus:border-brand-yellow"
             />
           </label>
@@ -115,10 +115,12 @@ export function FinancePage() {
         {transactions.map((t) => (
           <div
             key={t.id}
-            className="flex items-center justify-between bg-white border border-brand-border rounded-xl px-3 py-2 text-sm"
+            className={`flex items-center justify-between border rounded-xl px-3 py-2 text-sm ${
+              t.type === 'income' ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'
+            }`}
           >
             <span
-              className={`font-semibold ${t.type === 'income' ? 'text-green-700' : 'text-red-600'}`}
+              className={`font-semibold ${t.type === 'income' ? 'text-red-600' : 'text-green-700'}`}
             >
               {t.type === 'income' ? '+' : '−'}
               {formatMoney(Number(t.amount))}

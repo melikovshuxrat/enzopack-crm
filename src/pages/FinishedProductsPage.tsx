@@ -249,9 +249,9 @@ export function FinishedProductsPage() {
             <div className="grid grid-cols-2 gap-3">
               <FormField
                 label="Цена продажи"
-                type="number"
+                money
                 value={editing.sale_price ?? 0}
-                onChange={(e) => setEditing({ ...editing, sale_price: Number(e.target.value) })}
+                onMoneyChange={(v) => setEditing({ ...editing, sale_price: v })}
               />
               <FormField
                 label="Остаток на складе"
