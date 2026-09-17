@@ -4,14 +4,15 @@ import type { Client } from '../types/db'
 
 const KEY = ['clients']
 
-export function useClients() {
+export function useClients(search?: string) {
   return useQuery({
-    queryKey: KEY,
+    queryKey: [...KEY, search ?? ''],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .order('created_at', { ascending: false })
+      let query = supabase.from('clients').select('*').order('created_at', { ascending: false })
+      if (search) {
+        query = query.or(`name.ilike.%${search}%,company.ilike.%${search}%,phone.ilike.%${search}%`)
+      }
+      const { data, error } = await query
       if (error) throw error
       return data as Client[]
     },

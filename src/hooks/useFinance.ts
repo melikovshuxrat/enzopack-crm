@@ -4,15 +4,17 @@ import type { FinanceTransaction } from '../types/db'
 
 const KEY = ['finance_transactions']
 
-export function useFinanceTransactions(type?: 'income' | 'expense') {
+export function useFinanceTransactions(type?: 'income' | 'expense', from?: string, to?: string) {
   return useQuery({
-    queryKey: [...KEY, type ?? 'all'],
+    queryKey: [...KEY, type ?? 'all', from ?? '', to ?? ''],
     queryFn: async () => {
       let query = supabase
         .from('finance_transactions')
         .select('*, related_client:clients(id,name), related_supplier:suppliers(id,name), related_order:orders(id)')
         .order('transaction_date', { ascending: false })
       if (type) query = query.eq('type', type)
+      if (from) query = query.gte('transaction_date', from)
+      if (to) query = query.lte('transaction_date', to)
       const { data, error } = await query
       if (error) throw error
       return data as (FinanceTransaction & {

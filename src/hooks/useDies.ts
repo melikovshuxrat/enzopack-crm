@@ -4,14 +4,18 @@ import type { Die } from '../types/db'
 
 const KEY = ['dies']
 
-export function useDies() {
+export function useDies(search?: string) {
   return useQuery({
-    queryKey: KEY,
+    queryKey: [...KEY, search ?? ''],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('dies')
         .select('*, for_product:finished_products(id,code,name)')
         .order('code', { ascending: true })
+      if (search) {
+        query = query.or(`code.ilike.%${search}%,name.ilike.%${search}%`)
+      }
+      const { data, error } = await query
       if (error) throw error
       return data as Die[]
     },

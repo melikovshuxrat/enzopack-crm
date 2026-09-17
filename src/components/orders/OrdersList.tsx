@@ -1,7 +1,7 @@
+import { DataTable, type DataTableColumn } from '../common/DataTable'
 import { StatusBadge } from '../common/StatusBadge'
 import { formatDate, formatMoney, formatNumber } from '../../lib/formatters'
 import type { Order } from '../../types/db'
-import { publicMediaUrl } from '../../lib/supabaseClient'
 
 interface OrdersListProps {
   orders: Order[]
@@ -11,67 +11,63 @@ interface OrdersListProps {
 }
 
 export function OrdersList({ orders, onAdvance, onCancel, onOpen }: OrdersListProps) {
-  if (orders.length === 0) {
-    return <div className="text-center text-brand-gray-dark py-16">Заказов пока нет</div>
-  }
+  const columns: DataTableColumn<Order>[] = [
+    {
+      key: 'client',
+      header: 'Клиент',
+      render: (o) => (
+        <span className="font-medium text-brand-ink">
+          {o.client?.name} {o.client?.company ? `· ${o.client.company}` : ''}
+        </span>
+      ),
+    },
+    {
+      key: 'product',
+      header: 'Товар',
+      render: (o) => (
+        <span>
+          #{o.product?.code} {o.product?.name}
+          {o.notes && (
+            <span className="ml-1 cursor-help" title={o.notes}>
+              📝
+            </span>
+          )}
+        </span>
+      ),
+    },
+    { key: 'quantity', header: 'Кол-во', render: (o) => `${formatNumber(Number(o.quantity))} шт` },
+    { key: 'unit_price', header: 'Цена за ед.', render: (o) => formatMoney(Number(o.unit_price)) },
+    { key: 'total', header: 'Сумма', render: (o) => <span className="font-medium">{formatMoney(Number(o.total_amount))}</span> },
+    { key: 'delivery_date', header: 'Дата доставки', render: (o) => formatDate(o.delivery_date) },
+    { key: 'created_at', header: 'Создан', render: (o) => formatDate(o.created_at) },
+    {
+      key: 'status',
+      header: 'Статус',
+      render: (o) => (
+        <StatusBadge status={o.status} onAdvance={o.status !== 'cancelled' ? () => onAdvance(o) : undefined} />
+      ),
+    },
+  ]
 
   return (
-    <div className="flex flex-col gap-2">
-      {orders.map((order) => {
-        const photo = publicMediaUrl(order.product?.photo_url)
-        const canCancel = order.status !== 'cancelled'
-        return (
-          <div
-            key={order.id}
-            onClick={() => onOpen(order)}
-            className="flex items-center gap-3 bg-white border border-brand-border rounded-xl p-3 cursor-pointer hover:border-brand-yellow hover:shadow-sm transition"
+    <DataTable
+      columns={columns}
+      items={orders}
+      keyField={(o) => o.id}
+      onRowClick={onOpen}
+      emptyLabel="Заказов пока нет"
+      rowActions={(order) =>
+        order.status !== 'cancelled' ? (
+          <button
+            type="button"
+            onClick={() => onCancel(order)}
+            className="text-brand-gray-dark hover:text-red-600 transition text-sm"
+            title="Отменить заказ"
           >
-            <div className="w-12 h-12 rounded-lg bg-brand-gray overflow-hidden shrink-0 flex items-center justify-center">
-              {photo ? (
-                <img src={photo} alt="" className="w-full h-full object-contain" />
-              ) : (
-                <span className="text-[10px] text-brand-gray-dark">#{order.product?.code}</span>
-              )}
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-brand-ink truncate">
-                {order.client?.name} {order.client?.company ? `· ${order.client.company}` : ''}
-              </div>
-              <div className="text-sm text-brand-gray-dark truncate">
-                #{order.product?.code} {order.product?.name} · {formatNumber(Number(order.quantity))} шт
-              </div>
-            </div>
-
-            <div className="hidden sm:block text-sm text-brand-gray-dark whitespace-nowrap">
-              до {formatDate(order.delivery_date)}
-            </div>
-
-            <div className="hidden md:block text-sm font-medium text-brand-ink whitespace-nowrap">
-              {formatMoney(Number(order.total_amount))}
-            </div>
-
-            <StatusBadge
-              status={order.status}
-              onAdvance={order.status !== 'cancelled' ? () => onAdvance(order) : undefined}
-            />
-
-            {canCancel && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onCancel(order)
-                }}
-                className="text-brand-gray-dark hover:text-red-600 transition text-sm"
-                title="Отменить заказ"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-        )
-      })}
-    </div>
+            ✕
+          </button>
+        ) : null
+      }
+    />
   )
 }

@@ -280,7 +280,7 @@ export function CalculatorOrderModal({ open, onClose }: CalculatorOrderModalProp
       let finalProductId = productId
       if (isNewProduct) {
         finalProductId = (await upsertProduct.mutateAsync({
-          product: { name: newProductName, sale_price: result.saleVat, stock_qty: 0, photo_url: null },
+          product: { name: newProductName, sale_price: result.saleVat, stock_qty: 0 },
           bom: bomLines,
         })) as string
       } else {

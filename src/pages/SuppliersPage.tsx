@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { CardListWithPhoto } from '../components/common/CardListWithPhoto'
+import { DataTable, type DataTableColumn } from '../components/common/DataTable'
 import { EntityFormModal } from '../components/common/EntityFormModal'
 import { FormField } from '../components/common/FormField'
-import { PhotoUploader } from '../components/common/PhotoUploader'
 import { formatDate, formatMoney, formatNumber, getDeleteErrorMessage, getErrorMessage } from '../lib/formatters'
 import {
   useCreateDelivery,
@@ -14,10 +13,22 @@ import {
 import { useRawMaterials } from '../hooks/useRawMaterials'
 import type { Supplier } from '../types/db'
 
-const EMPTY: Partial<Supplier> = { name: '', phone: '', supplies: '', photo_url: null, notes: '' }
+const EMPTY: Partial<Supplier> = { name: '', phone: '', supplies: '', notes: '' }
+
+const COLUMNS: DataTableColumn<Supplier>[] = [
+  { key: 'name', header: 'Имя', render: (s) => <span className="font-medium text-brand-ink">{s.name}</span> },
+  { key: 'phone', header: 'Телефон', render: (s) => s.phone || '—' },
+  { key: 'supplies', header: 'Поставляет', render: (s) => s.supplies || '—' },
+  {
+    key: 'notes',
+    header: 'Заметки',
+    render: (s) => <span className="text-brand-gray-dark truncate block max-w-xs">{s.notes || '—'}</span>,
+  },
+]
 
 export function SuppliersPage() {
-  const { data: suppliers = [], isLoading } = useSuppliers()
+  const [search, setSearch] = useState('')
+  const { data: suppliers = [], isLoading } = useSuppliers(search)
   const { data: materials = [] } = useRawMaterials()
   const upsert = useUpsertSupplier()
   const del = useDeleteSupplier()
@@ -80,23 +91,35 @@ export function SuppliersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-brand-ink mb-6">Поставщики</h1>
+      <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
+        <h1 className="text-2xl font-bold text-brand-ink">Поставщики</h1>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Поиск по имени, телефону…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="border border-brand-border rounded-full px-4 py-2 text-sm w-64 outline-none focus:border-brand-yellow"
+          />
+          <button
+            type="button"
+            onClick={() => setEditing(EMPTY)}
+            className="flex items-center gap-2 bg-brand-yellow text-brand-black font-semibold px-4 py-2 rounded-full shadow-sm hover:brightness-95 active:scale-95 transition"
+          >
+            <span className="text-lg leading-none">+</span> Поставщик
+          </button>
+        </div>
+      </div>
 
       {isLoading ? (
         <div className="text-brand-gray-dark">Загрузка…</div>
       ) : (
-        <CardListWithPhoto
-          items={suppliers.map((s) => ({
-            id: s.id,
-            photo_url: s.photo_url,
-            title: s.name,
-            subtitle: s.supplies,
-            meta: s.phone,
-          }))}
-          onItemClick={openEdit}
-          onAdd={() => setEditing(EMPTY)}
+        <DataTable
+          columns={COLUMNS}
+          items={suppliers}
+          keyField={(s) => s.id}
+          onRowClick={(s) => openEdit(s.id)}
           emptyLabel="Поставщиков пока нет"
-          addLabel="Поставщик"
         />
       )}
 
@@ -105,13 +128,6 @@ export function SuppliersPage() {
         onClose={() => setEditing(null)}
         title={editing?.id ? 'Редактировать поставщика' : 'Новый поставщик'}
         onDelete={editing?.id ? handleDelete : undefined}
-        photoSlot={
-          <PhotoUploader
-            value={editing?.photo_url ?? null}
-            folder="suppliers"
-            onChange={(path) => setEditing((prev) => (prev ? { ...prev, photo_url: path } : prev))}
-          />
-        }
         footer={
           <>
             <button

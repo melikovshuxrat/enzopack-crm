@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { CardListWithPhoto } from '../components/common/CardListWithPhoto'
+import { DataTable, type DataTableColumn } from '../components/common/DataTable'
 import { EntityFormModal } from '../components/common/EntityFormModal'
 import { FormField } from '../components/common/FormField'
-import { PhotoUploader } from '../components/common/PhotoUploader'
-import { formatNumber, getDeleteErrorMessage, getErrorMessage } from '../lib/formatters'
+import { formatMoney, formatNumber, getDeleteErrorMessage, getErrorMessage } from '../lib/formatters'
 import {
   useDeleteRawMaterial,
   useRawMaterials,
@@ -15,12 +14,30 @@ import type { RawMaterial } from '../types/db'
 const EMPTY: Partial<RawMaterial> = {
   name: '',
   unit: '',
-  photo_url: null,
   supplier_id: null,
   unit_price: 0,
   stock_qty: 0,
   grammage: null,
 }
+
+const COLUMNS: DataTableColumn<RawMaterial>[] = [
+  { key: 'code', header: 'Код', render: (m) => <span className="text-brand-gray-dark">#{m.code}</span> },
+  { key: 'name', header: 'Название', render: (m) => <span className="font-medium text-brand-ink">{m.name}</span> },
+  { key: 'supplier', header: 'Поставщик', render: (m) => m.supplier?.name || '—' },
+  { key: 'unit', header: 'Ед. изм.', render: (m) => m.unit },
+  { key: 'grammage', header: 'Граммаж', render: (m) => (m.grammage != null ? `${m.grammage} г/м²` : '—') },
+  {
+    key: 'stock',
+    header: 'Остаток',
+    render: (m) => (
+      <span className={Number(m.stock_qty) < 0 ? 'text-red-600 font-semibold' : ''}>
+        {formatNumber(Number(m.stock_qty))} {m.unit}
+        {Number(m.stock_qty) < 0 ? ' — дефицит!' : ''}
+      </span>
+    ),
+  },
+  { key: 'price', header: 'Цена за единицу', render: (m) => formatMoney(Number(m.unit_price)) },
+]
 
 export function RawMaterialsPage() {
   const [search, setSearch] = useState('')
@@ -41,7 +58,6 @@ export function RawMaterialsPage() {
         id: editing.id,
         name: editing.name,
         unit: editing.unit,
-        photo_url: editing.photo_url ?? null,
         supplier_id: editing.supplier_id ?? null,
         unit_price: Number(editing.unit_price ?? 0),
         stock_qty: Number(editing.stock_qty ?? 0),
@@ -68,33 +84,33 @@ export function RawMaterialsPage() {
     <div>
       <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
         <h1 className="text-2xl font-bold text-brand-ink">Склад сырья</h1>
-        <input
-          type="text"
-          placeholder="Поиск по коду или названию…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="border border-brand-border rounded-full px-4 py-2 text-sm w-64 outline-none focus:border-brand-yellow"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Поиск по коду или названию…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="border border-brand-border rounded-full px-4 py-2 text-sm w-64 outline-none focus:border-brand-yellow"
+          />
+          <button
+            type="button"
+            onClick={() => setEditing(EMPTY)}
+            className="flex items-center gap-2 bg-brand-yellow text-brand-black font-semibold px-4 py-2 rounded-full shadow-sm hover:brightness-95 active:scale-95 transition"
+          >
+            <span className="text-lg leading-none">+</span> Материал
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
         <div className="text-brand-gray-dark">Загрузка…</div>
       ) : (
-        <CardListWithPhoto
-          items={materials.map((m) => ({
-            id: m.id,
-            photo_url: m.photo_url,
-            title: m.name,
-            subtitle: m.supplier?.name,
-            badge: `#${m.code}`,
-            meta: `${formatNumber(Number(m.stock_qty))} ${m.unit}${
-              Number(m.stock_qty) < 0 ? ' — дефицит!' : ''
-            }`,
-          }))}
-          onItemClick={openEdit}
-          onAdd={() => setEditing(EMPTY)}
+        <DataTable
+          columns={COLUMNS}
+          items={materials}
+          keyField={(m) => m.id}
+          onRowClick={(m) => openEdit(m.id)}
           emptyLabel="Материалов пока нет"
-          addLabel="Материал"
         />
       )}
 
@@ -103,13 +119,6 @@ export function RawMaterialsPage() {
         onClose={() => setEditing(null)}
         title={editing?.id ? `Материал #${editing.code}` : 'Новый материал'}
         onDelete={editing?.id ? handleDelete : undefined}
-        photoSlot={
-          <PhotoUploader
-            value={editing?.photo_url ?? null}
-            folder="materials"
-            onChange={(path) => setEditing((prev) => (prev ? { ...prev, photo_url: path } : prev))}
-          />
-        }
         footer={
           <>
             <button

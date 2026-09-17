@@ -4,14 +4,15 @@ import type { Supplier, SupplierDelivery } from '../types/db'
 
 const KEY = ['suppliers']
 
-export function useSuppliers() {
+export function useSuppliers(search?: string) {
   return useQuery({
-    queryKey: KEY,
+    queryKey: [...KEY, search ?? ''],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('suppliers')
-        .select('*')
-        .order('created_at', { ascending: false })
+      let query = supabase.from('suppliers').select('*').order('created_at', { ascending: false })
+      if (search) {
+        query = query.or(`name.ilike.%${search}%,supplies.ilike.%${search}%,phone.ilike.%${search}%`)
+      }
+      const { data, error } = await query
       if (error) throw error
       return data as Supplier[]
     },

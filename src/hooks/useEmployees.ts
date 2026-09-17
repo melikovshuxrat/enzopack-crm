@@ -4,11 +4,15 @@ import type { Employee, EmployeeHours } from '../types/db'
 
 const KEY = ['employees']
 
-export function useEmployees() {
+export function useEmployees(search?: string) {
   return useQuery({
-    queryKey: KEY,
+    queryKey: [...KEY, search ?? ''],
     queryFn: async () => {
-      const { data, error } = await supabase.from('employees').select('*').order('full_name', { ascending: true })
+      let query = supabase.from('employees').select('*').order('full_name', { ascending: true })
+      if (search) {
+        query = query.or(`full_name.ilike.%${search}%,position.ilike.%${search}%`)
+      }
+      const { data, error } = await query
       if (error) throw error
       return data as Employee[]
     },

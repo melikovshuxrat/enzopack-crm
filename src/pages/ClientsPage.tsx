@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { CardListWithPhoto } from '../components/common/CardListWithPhoto'
+import { DataTable, type DataTableColumn } from '../components/common/DataTable'
 import { EntityFormModal } from '../components/common/EntityFormModal'
 import { FormField } from '../components/common/FormField'
-import { PhotoUploader } from '../components/common/PhotoUploader'
 import { formatDate, formatMoney, formatNumber, getDeleteErrorMessage, getErrorMessage } from '../lib/formatters'
 import { useClients, useDeleteClient, useUpsertClient } from '../hooks/useClients'
 import { useClientOrders } from '../hooks/useOrders'
@@ -11,10 +10,22 @@ import { TechCardView } from '../components/techcards/TechCardView'
 import { ORDER_STATUS_LABELS } from '../types/db'
 import type { Client } from '../types/db'
 
-const EMPTY: Partial<Client> = { name: '', company: '', phone: '', logo_url: null, notes: '' }
+const EMPTY: Partial<Client> = { name: '', company: '', phone: '', notes: '' }
+
+const COLUMNS: DataTableColumn<Client>[] = [
+  { key: 'name', header: 'Имя', render: (c) => <span className="font-medium text-brand-ink">{c.name}</span> },
+  { key: 'company', header: 'Компания', render: (c) => c.company || '—' },
+  { key: 'phone', header: 'Телефон', render: (c) => c.phone || '—' },
+  {
+    key: 'notes',
+    header: 'Заметки',
+    render: (c) => <span className="text-brand-gray-dark truncate block max-w-xs">{c.notes || '—'}</span>,
+  },
+]
 
 export function ClientsPage() {
-  const { data: clients = [], isLoading } = useClients()
+  const [search, setSearch] = useState('')
+  const { data: clients = [], isLoading } = useClients(search)
   const upsert = useUpsertClient()
   const del = useDeleteClient()
   const [editing, setEditing] = useState<Partial<Client> | null>(null)
@@ -48,23 +59,35 @@ export function ClientsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-brand-ink mb-6">Клиенты</h1>
+      <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
+        <h1 className="text-2xl font-bold text-brand-ink">Клиенты</h1>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Поиск по имени, компании, телефону…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="border border-brand-border rounded-full px-4 py-2 text-sm w-64 outline-none focus:border-brand-yellow"
+          />
+          <button
+            type="button"
+            onClick={() => setEditing(EMPTY)}
+            className="flex items-center gap-2 bg-brand-yellow text-brand-black font-semibold px-4 py-2 rounded-full shadow-sm hover:brightness-95 active:scale-95 transition"
+          >
+            <span className="text-lg leading-none">+</span> Клиент
+          </button>
+        </div>
+      </div>
 
       {isLoading ? (
         <div className="text-brand-gray-dark">Загрузка…</div>
       ) : (
-        <CardListWithPhoto
-          items={clients.map((c) => ({
-            id: c.id,
-            photo_url: c.logo_url,
-            title: c.name,
-            subtitle: c.company,
-            meta: c.phone,
-          }))}
-          onItemClick={openEdit}
-          onAdd={() => setEditing(EMPTY)}
+        <DataTable
+          columns={COLUMNS}
+          items={clients}
+          keyField={(c) => c.id}
+          onRowClick={(c) => openEdit(c.id)}
           emptyLabel="Клиентов пока нет"
-          addLabel="Клиент"
         />
       )}
 
@@ -73,13 +96,6 @@ export function ClientsPage() {
         onClose={() => setEditing(null)}
         title={editing?.id ? 'Редактировать клиента' : 'Новый клиент'}
         onDelete={editing?.id ? handleDelete : undefined}
-        photoSlot={
-          <PhotoUploader
-            value={editing?.logo_url ?? null}
-            folder="clients"
-            onChange={(path) => setEditing((prev) => (prev ? { ...prev, logo_url: path } : prev))}
-          />
-        }
         footer={
           <>
             <button

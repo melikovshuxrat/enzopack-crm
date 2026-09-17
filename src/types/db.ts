@@ -25,7 +25,6 @@ export interface Client {
   name: string
   company: string | null
   phone: string | null
-  logo_url: string | null
   notes: string | null
   created_at: string
   updated_at: string
@@ -36,7 +35,6 @@ export interface Supplier {
   name: string
   phone: string | null
   supplies: string | null
-  photo_url: string | null
   notes: string | null
   created_at: string
   updated_at: string
@@ -47,7 +45,6 @@ export interface RawMaterial {
   code: string
   name: string
   unit: string
-  photo_url: string | null
   supplier_id: string | null
   unit_price: number
   stock_qty: number
@@ -61,7 +58,6 @@ export interface FinishedProduct {
   id: string
   code: string
   name: string
-  photo_url: string | null
   sale_price: number
   stock_qty: number
   cost_price: number
@@ -99,8 +95,8 @@ export interface Order {
   notes: string | null
   created_at: string
   updated_at: string
-  client?: Pick<Client, 'id' | 'name' | 'company' | 'logo_url'>
-  product?: Pick<FinishedProduct, 'id' | 'code' | 'name' | 'photo_url'>
+  client?: Pick<Client, 'id' | 'name' | 'company'>
+  product?: Pick<FinishedProduct, 'id' | 'code' | 'name'>
 }
 
 export interface FinanceTransaction {
@@ -163,7 +159,6 @@ export interface Die {
   code: string
   name: string
   for_product_id: string | null
-  photo_url: string | null
   purchase_date: string | null
   status: DieStatus
   notes: string | null
@@ -211,8 +206,10 @@ export interface FinishedGoodsMovement {
 export interface Employee {
   id: string
   full_name: string
+  position: string | null
   monthly_salary: number
   monthly_norm_hours: number
+  daily_norm_hours: number
   active: boolean
   created_at: string
   updated_at: string

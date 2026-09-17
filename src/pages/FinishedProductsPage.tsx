@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import { BomEditor, type BomLine } from '../components/products/BomEditor'
-import { CardListWithPhoto } from '../components/common/CardListWithPhoto'
+import { DataTable, type DataTableColumn } from '../components/common/DataTable'
 import { EntityFormModal } from '../components/common/EntityFormModal'
 import { FormField } from '../components/common/FormField'
-import { PhotoUploader } from '../components/common/PhotoUploader'
 import { DateRangeFilter, DEFAULT_DATE_RANGE, type DateRange } from '../components/common/DateRangeFilter'
 import {
   formatDateTimeTashkent,
@@ -23,7 +22,15 @@ import { useAllFinishedGoodsMovements, useFinishedGoodsMovements } from '../hook
 import { useRawMaterials, useUpsertRawMaterial } from '../hooks/useRawMaterials'
 import { FINISHED_GOODS_MOVEMENT_LABELS, type FinishedProduct } from '../types/db'
 
-const EMPTY: Partial<FinishedProduct> = { name: '', photo_url: null, sale_price: 0, stock_qty: 0 }
+const EMPTY: Partial<FinishedProduct> = { name: '', sale_price: 0, stock_qty: 0 }
+
+const COLUMNS: DataTableColumn<FinishedProduct>[] = [
+  { key: 'code', header: 'Код', render: (p) => <span className="text-brand-gray-dark">#{p.code}</span> },
+  { key: 'name', header: 'Название', render: (p) => <span className="font-medium text-brand-ink">{p.name}</span> },
+  { key: 'stock', header: 'Остаток', render: (p) => `${formatNumber(Number(p.stock_qty))} шт` },
+  { key: 'cost', header: 'Себестоимость', render: (p) => formatMoney(Number(p.cost_price)) },
+  { key: 'price', header: 'Цена продажи', render: (p) => formatMoney(Number(p.sale_price)) },
+]
 
 export function FinishedProductsPage() {
   const [tab, setTab] = useState<'stock' | 'history'>('stock')
@@ -72,7 +79,6 @@ export function FinishedProductsPage() {
         id: editing.id,
         product: {
           name: editing.name,
-          photo_url: editing.photo_url ?? null,
           sale_price: Number(editing.sale_price ?? 0),
           stock_qty: Number(editing.stock_qty ?? 0),
         },
@@ -100,13 +106,22 @@ export function FinishedProductsPage() {
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
         <h1 className="text-2xl font-bold text-brand-ink">Склад готовой продукции</h1>
         {tab === 'stock' && (
-          <input
-            type="text"
-            placeholder="Поиск по коду или названию…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="border border-brand-border rounded-full px-4 py-2 text-sm w-64 outline-none focus:border-brand-yellow"
-          />
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="Поиск по коду или названию…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="border border-brand-border rounded-full px-4 py-2 text-sm w-64 outline-none focus:border-brand-yellow"
+            />
+            <button
+              type="button"
+              onClick={() => setEditing(EMPTY)}
+              className="flex items-center gap-2 bg-brand-yellow text-brand-black font-semibold px-4 py-2 rounded-full shadow-sm hover:brightness-95 active:scale-95 transition"
+            >
+              <span className="text-lg leading-none">+</span> Продукт
+            </button>
+          </div>
         )}
       </div>
 
@@ -145,19 +160,12 @@ export function FinishedProductsPage() {
               />
               Показать товары без остатка на складе
             </label>
-            <CardListWithPhoto
-              items={visibleProducts.map((p) => ({
-                id: p.id,
-                photo_url: p.photo_url,
-                title: p.name,
-                badge: `#${p.code}`,
-                subtitle: formatMoney(Number(p.sale_price)),
-                meta: `На складе: ${formatNumber(Number(p.stock_qty))} шт · себестоимость ${formatMoney(Number(p.cost_price))}`,
-              }))}
-              onItemClick={openEdit}
-              onAdd={() => setEditing(EMPTY)}
+            <DataTable
+              columns={COLUMNS}
+              items={visibleProducts}
+              keyField={(p) => p.id}
+              onRowClick={(p) => openEdit(p.id)}
               emptyLabel={showZeroStock ? 'Продуктов пока нет' : 'На складе сейчас ничего нет'}
-              addLabel="Продукт"
             />
           </>
         )
@@ -205,13 +213,6 @@ export function FinishedProductsPage() {
         onClose={() => setEditing(null)}
         title={editing?.id ? `Продукт #${editing.code}` : 'Новый продукт'}
         onDelete={editing?.id ? handleDelete : undefined}
-        photoSlot={
-          <PhotoUploader
-            value={editing?.photo_url ?? null}
-            folder="products"
-            onChange={(path) => setEditing((prev) => (prev ? { ...prev, photo_url: path } : prev))}
-          />
-        }
         footer={
           <>
             <button

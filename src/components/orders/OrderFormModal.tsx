@@ -81,7 +81,7 @@ export function OrderFormModal({ open, onClose }: OrderFormModalProps) {
       let createdProductCode: string | null = null
       if (isNewProduct) {
         finalProductId = (await upsertProduct.mutateAsync({
-          product: { name: newProductName, sale_price: unitPrice, stock_qty: 0, photo_url: null },
+          product: { name: newProductName, sale_price: unitPrice, stock_qty: 0 },
           bom: newProductBom.filter((l) => l.raw_material_id && l.qty_per_unit > 0),
         })) as string
 

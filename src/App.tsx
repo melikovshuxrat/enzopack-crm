@@ -8,6 +8,7 @@ import { ClientsPage } from './pages/ClientsPage'
 import { RawMaterialsPage } from './pages/RawMaterialsPage'
 import { FinishedProductsPage } from './pages/FinishedProductsPage'
 import { SuppliersPage } from './pages/SuppliersPage'
+import { EmployeesPage } from './pages/EmployeesPage'
 import { FinancePage } from './pages/FinancePage'
 import { ProductionSettingsPage } from './pages/ProductionSettingsPage'
 
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/materials" element={<RawMaterialsPage />} />
           <Route path="/products" element={<FinishedProductsPage />} />
           <Route path="/suppliers" element={<SuppliersPage />} />
+          <Route path="/employees" element={<EmployeesPage />} />
           <Route path="/finance" element={<FinancePage />} />
           <Route path="/production-settings" element={<ProductionSettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />

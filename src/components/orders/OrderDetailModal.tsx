@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { EntityFormModal } from '../common/EntityFormModal'
 import { FormField } from '../common/FormField'
 import { StatusBadge } from '../common/StatusBadge'
-import { publicMediaUrl } from '../../lib/supabaseClient'
 import { formatMoney, formatNumber, getErrorMessage } from '../../lib/formatters'
 import { useClients } from '../../hooks/useClients'
 import { useOrderMaterialConsumption, useUpdateOrderDetails, useUpdateOrderStatus } from '../../hooks/useOrders'
@@ -79,7 +78,6 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
     }
   }
 
-  const photo = publicMediaUrl(order?.product?.photo_url)
   const selectedClient = clients.find((c) => c.id === clientId)
 
   return (
@@ -87,13 +85,6 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
       open={!!order}
       onClose={onClose}
       title={`Заказ #${order?.product?.code ?? ''}`}
-      photoSlot={
-        photo ? (
-          <div className="w-full h-32 rounded-xl overflow-hidden bg-brand-gray">
-            <img src={photo} alt="" className="w-full h-full object-contain" />
-          </div>
-        ) : undefined
-      }
       footer={
         <>
           {!isCancelled && (

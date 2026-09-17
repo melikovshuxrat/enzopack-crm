@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { to: '/materials', label: 'Склад сырья' },
   { to: '/products', label: 'Склад продукции' },
   { to: '/suppliers', label: 'Поставщики' },
+  { to: '/employees', label: 'Сотрудники' },
   { to: '/finance', label: 'Финансы' },
   { to: '/production-settings', label: 'Настройки производства' },
 ]
