@@ -225,3 +225,12 @@ export interface EmployeeHours {
   notes: string | null
   created_at: string
 }
+
+export interface EmployeeDailyHours {
+  id: string
+  employee_id: string
+  work_date: string
+  hours: number
+  created_at: string
+  updated_at: string
+}

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
-import type { Employee, EmployeeHours } from '../types/db'
+import type { Employee, EmployeeDailyHours, EmployeeHours } from '../types/db'
 
 const KEY = ['employees']
 
@@ -58,6 +58,58 @@ export function useEmployeeHours(month: string) {
       const { data, error } = await supabase.from('employee_hours').select('*').eq('month', month)
       if (error) throw error
       return data as EmployeeHours[]
+    },
+  })
+}
+
+export function useEmployeeDailyHours(employeeId: string | undefined, from: string, to: string) {
+  return useQuery({
+    queryKey: ['employee_daily_hours', employeeId, from, to],
+    enabled: !!employeeId && !!from && !!to,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('employee_daily_hours')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .gte('work_date', from)
+        .lte('work_date', to)
+      if (error) throw error
+      return data as EmployeeDailyHours[]
+    },
+  })
+}
+
+/** All daily-hours rows for every employee in a date range, in one query —
+ * used by the employees list so each row's day-strip doesn't need its own
+ * request per employee. */
+export function useAllEmployeeDailyHours(from: string, to: string) {
+  return useQuery({
+    queryKey: ['employee_daily_hours', 'all', from, to],
+    enabled: !!from && !!to,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('employee_daily_hours')
+        .select('*')
+        .gte('work_date', from)
+        .lte('work_date', to)
+      if (error) throw error
+      return data as EmployeeDailyHours[]
+    },
+  })
+}
+
+export function useUpsertEmployeeDailyHours() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: { employee_id: string; work_date: string; hours: number }) => {
+      const { error } = await supabase
+        .from('employee_daily_hours')
+        .upsert(input, { onConflict: 'employee_id,work_date' })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['employee_daily_hours'] })
+      qc.invalidateQueries({ queryKey: ['employee_hours'] })
     },
   })
 }
