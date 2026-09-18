@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { KpiCard } from '../components/common/KpiCard'
 import { MoneyInput } from '../components/common/MoneyInput'
+import { DebtsPanel } from '../components/finance/DebtsPanel'
 import { formatDate, formatMoney } from '../lib/formatters'
 import {
   useCashBalance,
@@ -8,11 +9,13 @@ import {
   useDeleteFinanceTransaction,
   useFinanceTransactions,
 } from '../hooks/useFinance'
+import { useClientBalances, useSupplierBalances } from '../hooks/useDebts'
 
 const TABS = [
   { key: 'income', label: 'Приход' },
   { key: 'expense', label: 'Расход' },
   { key: 'cash', label: 'Касса' },
+  { key: 'debts', label: 'Долги' },
 ] as const
 
 const FILTER_MODES = [
@@ -47,6 +50,20 @@ function categoryLabel(category: string | null): string | null {
 export function FinancePage() {
   const [tab, setTab] = useState<(typeof TABS)[number]['key']>('cash')
   const { data: balance } = useCashBalance()
+  const { data: clientBalances } = useClientBalances()
+  const { data: supplierBalances } = useSupplierBalances()
+
+  const owedToUs = useMemo(() => {
+    let sum = 0
+    for (const b of clientBalances?.values() ?? []) sum += Math.max(0, b.debt)
+    return sum
+  }, [clientBalances])
+
+  const weOwe = useMemo(() => {
+    let sum = 0
+    for (const b of supplierBalances?.values() ?? []) sum += Math.max(0, b.debt)
+    return sum
+  }, [supplierBalances])
 
   const now = new Date()
   const [filterMode, setFilterMode] = useState<FilterMode>('month')
@@ -72,7 +89,11 @@ export function FinancePage() {
     return { from: filterFrom, to: filterTo }
   }, [filterMode, filterYear, filterMonth, filterDay, filterFrom, filterTo])
 
-  const { data: transactions = [] } = useFinanceTransactions(tab === 'cash' ? undefined : tab, from, to)
+  const { data: transactions = [] } = useFinanceTransactions(
+    tab === 'income' || tab === 'expense' ? tab : undefined,
+    from,
+    to,
+  )
   const create = useCreateFinanceTransaction()
   const del = useDeleteFinanceTransaction()
 
@@ -81,7 +102,7 @@ export function FinancePage() {
   const [category, setCategory] = useState('')
 
   async function handleAdd() {
-    if (!amount || tab === 'cash') return
+    if (!amount || tab !== 'income' && tab !== 'expense') return
     await create.mutateAsync({
       type: tab,
       amount,
@@ -98,12 +119,15 @@ export function FinancePage() {
     <div>
       <h1 className="text-2xl font-bold text-brand-ink mb-6">Финансы</h1>
 
-      <div className="flex gap-3 mb-6">
+      <div className="flex gap-3 mb-6 flex-wrap">
         <KpiCard label="Приход" value={formatMoney(balance?.income ?? 0)} tone="income" />
         <KpiCard label="Расход" value={formatMoney(balance?.expense ?? 0)} tone="expense" />
         <KpiCard label="Касса" value={formatMoney(balance?.balance ?? 0)} />
+        <KpiCard label="Нам должны" value={formatMoney(owedToUs)} tone="income" />
+        <KpiCard label="Мы должны" value={formatMoney(weOwe)} tone="expense" />
       </div>
 
+      {tab !== 'debts' && (
       <div className="flex flex-wrap items-center gap-2 mb-4 bg-white border border-brand-border rounded-xl p-3">
         <div className="flex gap-1 bg-brand-gray rounded-lg p-0.5">
           {FILTER_MODES.map((m) => (
@@ -188,6 +212,7 @@ export function FinancePage() {
           </div>
         )}
       </div>
+      )}
 
       <div className="flex gap-2 mb-4">
         {TABS.map((t) => (
@@ -206,7 +231,7 @@ export function FinancePage() {
         ))}
       </div>
 
-      {tab !== 'cash' && (
+      {tab !== 'cash' && tab !== 'debts' && (
         <div className="flex flex-wrap items-end gap-2 bg-white border border-brand-border rounded-xl p-3 mb-4">
           <label className="flex flex-col gap-1">
             <span className="text-xs text-brand-gray-dark">Сумма</span>
@@ -245,44 +270,48 @@ export function FinancePage() {
         </div>
       )}
 
-      <div className="flex flex-col gap-1.5">
-        {transactions.map((t) => (
-          <div
-            key={t.id}
-            className={`flex items-center justify-between border rounded-xl px-3 py-2 text-sm ${
-              t.type === 'income' ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'
-            }`}
-          >
-            <span
-              className={`font-semibold ${t.type === 'income' ? 'text-red-600' : 'text-green-700'}`}
+      {tab === 'debts' ? (
+        <DebtsPanel />
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          {transactions.map((t) => (
+            <div
+              key={t.id}
+              className={`flex items-center justify-between border rounded-xl px-3 py-2 text-sm ${
+                t.type === 'income' ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'
+              }`}
             >
-              {t.type === 'income' ? '+' : '−'}
-              {formatMoney(Number(t.amount))}
-            </span>
-            <span className="text-brand-gray-dark truncate flex-1 mx-3">
-              {categoryLabel(t.category) ? `${categoryLabel(t.category)} · ` : ''}
-              {(t.category === 'order_payment' || t.category === 'order_delivery_settlement') && t.related_client
-                ? t.related_client.name
-                : t.category === 'supplier_delivery' && t.related_supplier
-                  ? t.related_supplier.name
-                  : t.description}
-            </span>
-            <span className="text-brand-gray-dark whitespace-nowrap">
-              {formatDate(t.transaction_date)}
-            </span>
-            <button
-              type="button"
-              onClick={() => del.mutate(t.id)}
-              className="ml-3 text-brand-gray-dark hover:text-red-600"
-            >
-              ✕
-            </button>
-          </div>
-        ))}
-        {transactions.length === 0 && (
-          <div className="text-center text-brand-gray-dark py-10">Записей пока нет</div>
-        )}
-      </div>
+              <span
+                className={`font-semibold ${t.type === 'income' ? 'text-red-600' : 'text-green-700'}`}
+              >
+                {t.type === 'income' ? '+' : '−'}
+                {formatMoney(Number(t.amount))}
+              </span>
+              <span className="text-brand-gray-dark truncate flex-1 mx-3">
+                {categoryLabel(t.category) ? `${categoryLabel(t.category)} · ` : ''}
+                {(t.category === 'order_payment' || t.category === 'order_delivery_settlement') && t.related_client
+                  ? t.related_client.name
+                  : t.category === 'supplier_delivery' && t.related_supplier
+                    ? t.related_supplier.name
+                    : t.description}
+              </span>
+              <span className="text-brand-gray-dark whitespace-nowrap">
+                {formatDate(t.transaction_date)}
+              </span>
+              <button
+                type="button"
+                onClick={() => del.mutate(t.id)}
+                className="ml-3 text-brand-gray-dark hover:text-red-600"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+          {transactions.length === 0 && (
+            <div className="text-center text-brand-gray-dark py-10">Записей пока нет</div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

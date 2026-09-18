@@ -115,3 +115,28 @@ export function useOrderPaid(orderId: string | undefined) {
     },
   })
 }
+
+export interface SupplierPayment {
+  id: string
+  amount: number
+  transaction_date: string
+  description: string | null
+}
+
+/** Individual expense payments recorded against a supplier — used in the Finance debts drill-down. */
+export function useSupplierPayments(supplierId: string | undefined) {
+  return useQuery({
+    queryKey: ['supplier_payments', supplierId],
+    enabled: !!supplierId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('finance_transactions')
+        .select('id, amount, transaction_date, description')
+        .eq('type', 'expense')
+        .eq('related_supplier_id', supplierId as string)
+        .order('transaction_date', { ascending: false })
+      if (error) throw error
+      return data as SupplierPayment[]
+    },
+  })
+}
