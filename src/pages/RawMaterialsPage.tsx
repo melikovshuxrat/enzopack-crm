@@ -17,6 +17,7 @@ const EMPTY: Partial<RawMaterial> = {
   supplier_id: null,
   unit_price: 0,
   stock_qty: 0,
+  format: '',
   grammage: null,
 }
 
@@ -25,6 +26,7 @@ const COLUMNS: DataTableColumn<RawMaterial>[] = [
   { key: 'name', header: 'Название', render: (m) => <span className="font-medium text-brand-ink">{m.name}</span> },
   { key: 'supplier', header: 'Поставщик', render: (m) => m.supplier?.name || '—' },
   { key: 'unit', header: 'Ед. изм.', render: (m) => m.unit },
+  { key: 'format', header: 'Формат', render: (m) => m.format || '—' },
   { key: 'grammage', header: 'Граммаж', render: (m) => (m.grammage != null ? `${m.grammage} г/м²` : '—') },
   {
     key: 'stock',
@@ -61,6 +63,7 @@ export function RawMaterialsPage() {
         supplier_id: editing.supplier_id ?? null,
         unit_price: Number(editing.unit_price ?? 0),
         stock_qty: Number(editing.stock_qty ?? 0),
+        format: editing.format || null,
         grammage: editing.grammage === null || editing.grammage === undefined ? null : Number(editing.grammage),
       })
       setEditing(null)
@@ -167,6 +170,13 @@ export function RawMaterialsPage() {
                 value={editing.unit_price ?? 0}
                 onMoneyChange={(v) => setEditing({ ...editing, unit_price: v })}
               />
+              <FormField
+                label="Формат"
+                value={editing.format ?? ''}
+                onChange={(e) => setEditing({ ...editing, format: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <FormField
                 label="Граммаж, г/м² (для бумаги)"
                 type="number"

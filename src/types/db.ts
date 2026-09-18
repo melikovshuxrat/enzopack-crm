@@ -48,6 +48,7 @@ export interface RawMaterial {
   supplier_id: string | null
   unit_price: number
   stock_qty: number
+  format: string | null
   grammage: number | null
   created_at: string
   updated_at: string
