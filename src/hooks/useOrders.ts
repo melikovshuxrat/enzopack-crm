@@ -150,6 +150,9 @@ export function useUpdateOrderStatus() {
       qc.invalidateQueries({ queryKey: ['production_trend'] })
       qc.invalidateQueries({ queryKey: ['finance_transactions'] })
       qc.invalidateQueries({ queryKey: ['cash_balance'] })
+      qc.invalidateQueries({ queryKey: ['client_balances'] })
+      qc.invalidateQueries({ queryKey: ['order_payments'] })
+      qc.invalidateQueries({ queryKey: ['order_paid'] })
     },
   })
 }

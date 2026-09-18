@@ -67,6 +67,10 @@ export function useCreateFinanceTransaction() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEY })
       qc.invalidateQueries({ queryKey: ['cash_balance'] })
+      qc.invalidateQueries({ queryKey: ['client_balances'] })
+      qc.invalidateQueries({ queryKey: ['supplier_balances'] })
+      qc.invalidateQueries({ queryKey: ['order_payments'] })
+      qc.invalidateQueries({ queryKey: ['order_paid'] })
     },
   })
 }
@@ -81,6 +85,10 @@ export function useDeleteFinanceTransaction() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEY })
       qc.invalidateQueries({ queryKey: ['cash_balance'] })
+      qc.invalidateQueries({ queryKey: ['client_balances'] })
+      qc.invalidateQueries({ queryKey: ['supplier_balances'] })
+      qc.invalidateQueries({ queryKey: ['order_payments'] })
+      qc.invalidateQueries({ queryKey: ['order_paid'] })
     },
   })
 }

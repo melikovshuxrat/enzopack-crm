@@ -39,6 +39,8 @@ function lastDayOfMonth(year: number, month: number): number {
 
 function categoryLabel(category: string | null): string | null {
   if (category === 'order_payment') return 'Оплата по заказу'
+  if (category === 'order_delivery_settlement') return 'Оплата при доставке'
+  if (category === 'supplier_delivery') return 'Закуп у поставщика'
   return category
 }
 
@@ -259,9 +261,11 @@ export function FinancePage() {
             </span>
             <span className="text-brand-gray-dark truncate flex-1 mx-3">
               {categoryLabel(t.category) ? `${categoryLabel(t.category)} · ` : ''}
-              {t.category === 'order_payment' && t.related_client
+              {(t.category === 'order_payment' || t.category === 'order_delivery_settlement') && t.related_client
                 ? t.related_client.name
-                : t.description}
+                : t.category === 'supplier_delivery' && t.related_supplier
+                  ? t.related_supplier.name
+                  : t.description}
             </span>
             <span className="text-brand-gray-dark whitespace-nowrap">
               {formatDate(t.transaction_date)}

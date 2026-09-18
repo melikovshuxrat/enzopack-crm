@@ -7,6 +7,8 @@ import { useClients } from '../../hooks/useClients'
 import { useOrderMaterialConsumption, useUpdateOrderDetails, useUpdateOrderStatus } from '../../hooks/useOrders'
 import { useProductBom } from '../../hooks/useFinishedProducts'
 import { useTechCardByOrder } from '../../hooks/useTechCards'
+import { useCreateFinanceTransaction } from '../../hooks/useFinance'
+import { useOrderPaid } from '../../hooks/useDebts'
 import { TechCardView } from '../techcards/TechCardView'
 import { ORDER_STATUS_FLOW } from '../../types/db'
 import type { Order } from '../../types/db'
@@ -21,13 +23,16 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
   const { data: bom = [] } = useProductBom(order?.product_id)
   const { data: consumption = [] } = useOrderMaterialConsumption(order?.id)
   const { data: techCard } = useTechCardByOrder(order?.id)
+  const { data: paid = 0 } = useOrderPaid(order?.id)
   const updateDetails = useUpdateOrderDetails()
   const updateStatus = useUpdateOrderStatus()
+  const createPayment = useCreateFinanceTransaction()
 
   const [clientId, setClientId] = useState('')
   const [deliveryDate, setDeliveryDate] = useState('')
   const [unitPrice, setUnitPrice] = useState(0)
   const [notes, setNotes] = useState('')
+  const [paymentAmount, setPaymentAmount] = useState(0)
 
   useEffect(() => {
     if (order) {
@@ -75,6 +80,23 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
       onClose()
     } catch (error) {
       alert(`Не удалось отменить заказ: ${getErrorMessage(error)}`)
+    }
+  }
+
+  async function handleAddPayment() {
+    if (!order || paymentAmount <= 0) return
+    try {
+      await createPayment.mutateAsync({
+        type: 'income',
+        category: 'order_payment',
+        amount: paymentAmount,
+        related_order_id: order.id,
+        related_client_id: order.client_id,
+        transaction_date: new Date().toISOString().slice(0, 10),
+      })
+      setPaymentAmount(0)
+    } catch (error) {
+      alert(`Не удалось записать оплату: ${getErrorMessage(error)}`)
     }
   }
 
@@ -134,6 +156,41 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
           {isCancelled && (
             <div className="text-xs text-brand-gray-dark">
               Заказ отменён — статус больше не меняется.
+            </div>
+          )}
+
+          {!isCancelled && (
+            <div className="border border-brand-border rounded-xl p-3">
+              <div className="text-sm font-medium text-brand-ink mb-2">Оплата</div>
+              <div className="flex items-center gap-3 text-xs mb-2">
+                <span>Сумма заказа: <span className="font-semibold">{formatMoney(Number(order.total_amount))}</span></span>
+                <span>Оплачено: <span className="font-semibold">{formatMoney(paid)}</span></span>
+                {Number(order.total_amount) - paid !== 0 && (
+                  <span
+                    className={`font-semibold ${Number(order.total_amount) - paid > 0 ? 'text-red-600' : 'text-green-700'}`}
+                  >
+                    {Number(order.total_amount) - paid > 0
+                      ? `Долг: ${formatMoney(Number(order.total_amount) - paid)}`
+                      : `Переплата: ${formatMoney(paid - Number(order.total_amount))}`}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-end gap-2">
+                <FormField
+                  label="Записать оплату"
+                  money
+                  value={paymentAmount}
+                  onMoneyChange={setPaymentAmount}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddPayment}
+                  disabled={paymentAmount <= 0 || createPayment.isPending}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-brand-yellow text-brand-black disabled:opacity-50 hover:brightness-95 transition"
+                >
+                  Внести
+                </button>
+              </div>
             </div>
           )}
 
