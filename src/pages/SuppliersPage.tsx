@@ -14,6 +14,7 @@ import {
 } from '../hooks/useSuppliers'
 import { useRawMaterials } from '../hooks/useRawMaterials'
 import { useSupplierBalances } from '../hooks/useDebts'
+import { useCreateFinanceTransaction } from '../hooks/useFinance'
 import type { Supplier } from '../types/db'
 
 const EMPTY: Partial<Supplier> = { name: '', phone: '', supplies: '', notes: '' }
@@ -27,6 +28,7 @@ export function SuppliersPage() {
   const upsert = useUpsertSupplier()
   const del = useDeleteSupplier()
   const createDelivery = useCreateDelivery()
+  const createPayment = useCreateFinanceTransaction()
   const [editing, setEditing] = useState<Partial<Supplier> | null>(null)
   const { data: deliveries = [] } = useSupplierDeliveries(editing?.id)
 
@@ -35,6 +37,7 @@ export function SuppliersPage() {
   const [deliveryUnitPrice, setDeliveryUnitPrice] = useState(0)
   const [deliveryDate, setDeliveryDate] = useState('')
   const [deliveryPaidNow, setDeliveryPaidNow] = useState(0)
+  const [payoffAmount, setPayoffAmount] = useState(0)
 
   const [purchasesRange, setPurchasesRange] = useState<DateRange>(DEFAULT_DATE_RANGE)
   const { data: allDeliveries = [], isLoading: purchasesLoading } = useAllSupplierDeliveries(
@@ -73,6 +76,7 @@ export function SuppliersPage() {
     setDeliveryUnitPrice(0)
     setDeliveryDate('')
     setDeliveryPaidNow(0)
+    setPayoffAmount(0)
   }
 
   async function handleSave() {
@@ -114,6 +118,22 @@ export function SuppliersPage() {
       setDeliveryPaidNow(0)
     } catch (error) {
       alert(`Не удалось добавить поставку: ${getErrorMessage(error)}`)
+    }
+  }
+
+  async function handleAddPayment() {
+    if (!editing?.id || payoffAmount <= 0) return
+    try {
+      await createPayment.mutateAsync({
+        type: 'expense',
+        category: 'supplier_payment',
+        amount: payoffAmount,
+        related_supplier_id: editing.id,
+        transaction_date: new Date().toISOString().slice(0, 10),
+      })
+      setPayoffAmount(0)
+    } catch (error) {
+      alert(`Не удалось записать оплату: ${getErrorMessage(error)}`)
     }
   }
 
@@ -261,6 +281,35 @@ export function SuppliersPage() {
 
             {editing.id && (
               <>
+                {(() => {
+                  const balance = balances?.get(editing.id) ?? { total: 0, paid: 0, debt: 0 }
+                  return (
+                    <div className="border border-brand-border rounded-xl p-3">
+                      <div className="text-sm font-medium text-brand-ink mb-2">Долг</div>
+                      <div className="flex items-center gap-3 text-xs mb-2 flex-wrap">
+                        <span>Закуплено всего: <span className="font-semibold">{formatMoney(balance.total)}</span></span>
+                        <span>Оплачено всего: <span className="font-semibold">{formatMoney(balance.paid)}</span></span>
+                        {balance.debt !== 0 && (
+                          <span className={`font-semibold ${balance.debt > 0 ? 'text-red-600' : 'text-green-700'}`}>
+                            {balance.debt > 0 ? `Мы должны: ${formatMoney(balance.debt)}` : `Переплата: ${formatMoney(-balance.debt)}`}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-end gap-2">
+                        <FormField label="Доплатить" money value={payoffAmount} onMoneyChange={setPayoffAmount} />
+                        <button
+                          type="button"
+                          onClick={handleAddPayment}
+                          disabled={payoffAmount <= 0 || createPayment.isPending}
+                          className="px-4 py-2 rounded-lg text-sm font-semibold bg-brand-yellow text-brand-black disabled:opacity-50 hover:brightness-95 transition"
+                        >
+                          Внести
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })()}
+
                 <div className="mt-2">
                   <div className="text-sm font-medium text-brand-ink mb-2">Новая поставка</div>
                   <div className="grid grid-cols-2 gap-2 mb-2">

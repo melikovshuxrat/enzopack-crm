@@ -44,6 +44,7 @@ function categoryLabel(category: string | null): string | null {
   if (category === 'order_payment') return 'Оплата по заказу'
   if (category === 'order_delivery_settlement') return 'Оплата при доставке'
   if (category === 'supplier_delivery') return 'Закуп у поставщика'
+  if (category === 'supplier_payment') return 'Доплата поставщику'
   return category
 }
 
@@ -291,7 +292,7 @@ export function FinancePage() {
                 {categoryLabel(t.category) ? `${categoryLabel(t.category)} · ` : ''}
                 {(t.category === 'order_payment' || t.category === 'order_delivery_settlement') && t.related_client
                   ? t.related_client.name
-                  : t.category === 'supplier_delivery' && t.related_supplier
+                  : (t.category === 'supplier_delivery' || t.category === 'supplier_payment') && t.related_supplier
                     ? t.related_supplier.name
                     : t.description}
               </span>
