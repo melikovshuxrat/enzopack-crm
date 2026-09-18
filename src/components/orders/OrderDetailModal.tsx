@@ -167,7 +167,7 @@ export function OrderDetailModal({ order, onClose }: OrderDetailModalProps) {
                 <span>Оплачено: <span className="font-semibold">{formatMoney(paid)}</span></span>
                 {Number(order.total_amount) - paid !== 0 && (
                   <span
-                    className={`font-semibold ${Number(order.total_amount) - paid > 0 ? 'text-red-600' : 'text-green-700'}`}
+                    className={`font-semibold ${Number(order.total_amount) - paid > 0 ? 'text-green-700' : 'text-red-600'}`}
                   >
                     {Number(order.total_amount) - paid > 0
                       ? `Долг: ${formatMoney(Number(order.total_amount) - paid)}`

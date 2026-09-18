@@ -278,11 +278,11 @@ export function FinancePage() {
             <div
               key={t.id}
               className={`flex items-center justify-between border rounded-xl px-3 py-2 text-sm ${
-                t.type === 'income' ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'
+                t.type === 'income' ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'
               }`}
             >
               <span
-                className={`font-semibold ${t.type === 'income' ? 'text-red-600' : 'text-green-700'}`}
+                className={`font-semibold ${t.type === 'income' ? 'text-green-700' : 'text-red-600'}`}
               >
                 {t.type === 'income' ? '+' : '−'}
                 {formatMoney(Number(t.amount))}

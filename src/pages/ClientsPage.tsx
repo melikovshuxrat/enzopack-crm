@@ -35,7 +35,7 @@ export function ClientsPage() {
         const debt = balances?.get(c.id)?.debt ?? 0
         if (debt === 0) return '—'
         return (
-          <span className={debt > 0 ? 'text-red-600 font-semibold' : 'text-green-700 font-semibold'}>
+          <span className={debt > 0 ? 'text-green-700 font-semibold' : 'text-red-600 font-semibold'}>
             {debt > 0 ? `Должен нам: ${formatMoney(debt)}` : `Переплата: ${formatMoney(-debt)}`}
           </span>
         )
@@ -181,7 +181,7 @@ export function ClientsPage() {
                           </span>
                           {o.status !== 'cancelled' && orderDebt !== 0 && (
                             <span
-                              className={`whitespace-nowrap font-medium ${orderDebt > 0 ? 'text-red-600' : 'text-green-700'}`}
+                              className={`whitespace-nowrap font-medium ${orderDebt > 0 ? 'text-green-700' : 'text-red-600'}`}
                             >
                               {orderDebt > 0 ? `Долг: ${formatMoney(orderDebt)}` : `Переплата: ${formatMoney(-orderDebt)}`}
                             </span>

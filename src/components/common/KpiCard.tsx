@@ -8,8 +8,8 @@ interface KpiCardProps {
 const TONE_CLASSES: Record<NonNullable<KpiCardProps['tone']>, string> = {
   default: 'bg-white border-brand-border',
   warning: 'bg-brand-yellow-light border-brand-yellow/60',
-  income: 'bg-red-50 border-red-100',
-  expense: 'bg-green-50 border-green-100',
+  income: 'bg-green-50 border-green-100',
+  expense: 'bg-red-50 border-red-100',
 }
 
 export function KpiCard({ label, value, hint, tone = 'default' }: KpiCardProps) {

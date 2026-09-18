@@ -18,10 +18,11 @@ function debtLabel(debt: number, oweLabel: string, overpaidLabel: string): strin
   return '—'
 }
 
-function debtColor(debt: number): string {
-  if (debt > 0) return 'text-red-600'
-  if (debt < 0) return 'text-green-700'
-  return 'text-brand-gray-dark'
+/** Positive client debt = they owe us = green. Positive supplier debt = we owe them = red. */
+function debtColor(debt: number, positiveIsGood: boolean): string {
+  if (debt === 0) return 'text-brand-gray-dark'
+  const isGood = debt > 0 ? positiveIsGood : !positiveIsGood
+  return isGood ? 'text-green-700' : 'text-red-600'
 }
 
 export function DebtsPanel() {
@@ -77,7 +78,7 @@ export function DebtsPanel() {
                   {c.name}
                   {c.company ? ` (${c.company})` : ''}
                 </span>
-                <span className={`whitespace-nowrap font-semibold ${debtColor(c.balance.debt)}`}>
+                <span className={`whitespace-nowrap font-semibold ${debtColor(c.balance.debt, true)}`}>
                   {debtLabel(c.balance.debt, 'Должен', 'Переплата')}
                 </span>
               </button>
@@ -112,7 +113,7 @@ export function DebtsPanel() {
                 className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-sm text-left"
               >
                 <span className="font-medium text-brand-ink truncate">{s.name}</span>
-                <span className={`whitespace-nowrap font-semibold ${debtColor(s.balance.debt)}`}>
+                <span className={`whitespace-nowrap font-semibold ${debtColor(s.balance.debt, false)}`}>
                   {debtLabel(s.balance.debt, 'Мы должны', 'Переплата')}
                 </span>
               </button>
@@ -147,7 +148,7 @@ function ClientDebtDetail({ clientId }: { clientId: string }) {
                 {formatMoney(Number(o.total_amount))} · оплачено {formatMoney(paid)}
               </span>
               {debt !== 0 && (
-                <span className={`whitespace-nowrap font-medium ${debtColor(debt)}`}>
+                <span className={`whitespace-nowrap font-medium ${debtColor(debt, true)}`}>
                   {debtLabel(debt, 'долг', 'переплата')}
                 </span>
               )}
