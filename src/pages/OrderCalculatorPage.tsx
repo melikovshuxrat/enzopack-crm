@@ -88,6 +88,7 @@ export function OrderCalculatorPage() {
   const [waste, setWaste] = useState(0)
 
   // --- step 2: board & glue ---
+  const [orderName, setOrderName] = useState('Гофрокороб')
   const [boardType, setBoardType] = useState<CalculatorConfig['boardType']>('3')
   const [layerPicks, setLayerPicks] = useState<{ raw_material_id: string; factor: number }[]>([
     { raw_material_id: '', factor: 1 },
@@ -137,6 +138,7 @@ export function OrderCalculatorPage() {
     setGlueFlap(40)
     setQuantity(1000)
     setWaste(0)
+    setOrderName('Гофрокороб')
     setBoardType('3')
     setLayerPicks([
       { raw_material_id: '', factor: 1 },
@@ -308,7 +310,7 @@ export function OrderCalculatorPage() {
           client_id: finalClientId,
           product_id: finalProductId,
           die_id: finalDieId,
-          input_snapshot: config as unknown as Record<string, unknown>,
+          input_snapshot: { ...config, orderName } as unknown as Record<string, unknown>,
           result_snapshot: result as unknown as Record<string, unknown>,
           settings_snapshot: settings as unknown as Record<string, unknown>,
           total_cost: result.totalCost,
@@ -722,18 +724,29 @@ export function OrderCalculatorPage() {
           {/* Step 2: board & glue */}
           <section className="border border-brand-border rounded-xl p-4 bg-white">
             <div className="text-sm font-semibold text-brand-ink mb-3">02 · Картон, слои и клей</div>
-            <label className="flex flex-col gap-1 mb-3">
-              <span className="text-xs text-brand-gray-dark">Тип картона</span>
-              <select
-                value={boardType}
-                onChange={(e) => setBoardType(e.target.value as CalculatorConfig['boardType'])}
-                className="border border-brand-border rounded-lg px-2 py-1.5 text-sm outline-none focus:border-brand-yellow max-w-xs"
-              >
-                <option value="3">3-слойный</option>
-                <option value="5">5-слойный</option>
-                <option value="ready">Покупной картон</option>
-              </select>
-            </label>
+            <div className="grid sm:grid-cols-2 gap-3 mb-3">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-brand-gray-dark">Тип картона</span>
+                <select
+                  value={boardType}
+                  onChange={(e) => setBoardType(e.target.value as CalculatorConfig['boardType'])}
+                  className="border border-brand-border rounded-lg px-2 py-1.5 text-sm outline-none focus:border-brand-yellow"
+                >
+                  <option value="3">3-слойный</option>
+                  <option value="5">5-слойный</option>
+                  <option value="ready">Покупной картон</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-brand-gray-dark">Наименование изделия</span>
+                <input
+                  type="text"
+                  value={orderName}
+                  onChange={(e) => setOrderName(e.target.value)}
+                  className="border border-brand-border rounded-lg px-2 py-1.5 text-sm outline-none focus:border-brand-yellow"
+                />
+              </label>
+            </div>
 
             {boardType === 'ready' ? (
               <label className="flex flex-col gap-1">
@@ -753,40 +766,50 @@ export function OrderCalculatorPage() {
               </label>
             ) : (
               <div className="grid sm:grid-cols-2 gap-2">
-                {layerPicks.slice(0, activeLayerCount).map((pick, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <span className="w-5 text-xs text-brand-gray-dark">{index + 1}.</span>
-                    <select
-                      value={pick.raw_material_id}
-                      onChange={(e) => {
-                        const next = [...layerPicks]
-                        next[index] = { ...pick, raw_material_id: e.target.value }
-                        setLayerPicks(next)
-                      }}
-                      className="flex-1 border border-brand-border rounded-lg px-2 py-1.5 text-sm outline-none focus:border-brand-yellow"
-                    >
-                      <option value="">Материал…</option>
-                      {boardMaterials.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          #{m.code} {m.name} ({m.grammage} г/м²)
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={pick.factor}
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => {
-                        const next = [...layerPicks]
-                        next[index] = { ...pick, factor: Number(e.target.value) }
-                        setLayerPicks(next)
-                      }}
-                      className="w-20 border border-brand-border rounded-lg px-2 py-1.5 text-sm outline-none focus:border-brand-yellow"
-                      title="Коэффициент расхода"
-                    />
-                  </div>
-                ))}
+                {layerPicks.slice(0, activeLayerCount).map((pick, index) => {
+                  const layerResult = result?.materialDetails[index]
+                  return (
+                    <div key={index} className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 text-xs text-brand-gray-dark">{index + 1}.</span>
+                        <select
+                          value={pick.raw_material_id}
+                          onChange={(e) => {
+                            const next = [...layerPicks]
+                            next[index] = { ...pick, raw_material_id: e.target.value }
+                            setLayerPicks(next)
+                          }}
+                          className="flex-1 border border-brand-border rounded-lg px-2 py-1.5 text-sm outline-none focus:border-brand-yellow"
+                        >
+                          <option value="">Материал…</option>
+                          {boardMaterials.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              #{m.code} {m.name} ({m.grammage} г/м²)
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={pick.factor}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const next = [...layerPicks]
+                            next[index] = { ...pick, factor: Number(e.target.value) }
+                            setLayerPicks(next)
+                          }}
+                          className="w-20 border border-brand-border rounded-lg px-2 py-1.5 text-sm outline-none focus:border-brand-yellow"
+                          title="Коэффициент расхода"
+                        />
+                      </div>
+                      {layerResult && pick.raw_material_id && (
+                        <div className="pl-7 text-[11px] text-brand-gray-dark">
+                          {layerResult.kg.toFixed(2)} кг на заказ · {formatMoney(layerResult.cost / (result?.quantity || 1))} на коробку
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
                 {boardMaterials.length === 0 && (
                   <div className="text-xs text-brand-gray-dark sm:col-span-2">
                     В складе сырья нет материалов с заполненным граммажем — добавьте граммаж бумаге в разделе «Склад
@@ -796,13 +819,32 @@ export function OrderCalculatorPage() {
               </div>
             )}
 
+            {result && (
+              <div className="grid grid-cols-3 gap-2 mt-3">
+                <div className="bg-brand-gray rounded-lg px-3 py-2">
+                  <div className="text-[10px] text-brand-gray-dark">Бумага на заказ</div>
+                  <div className="text-sm font-semibold text-brand-ink">{result.paperWeight.toFixed(2)} кг</div>
+                </div>
+                <div className="bg-brand-gray rounded-lg px-3 py-2">
+                  <div className="text-[10px] text-brand-gray-dark">Материалы на заказ</div>
+                  <div className="text-sm font-semibold text-brand-ink">{formatMoney(result.materialOrderCost)}</div>
+                </div>
+                <div className="bg-brand-gray rounded-lg px-3 py-2">
+                  <div className="text-[10px] text-brand-gray-dark">Материал на коробку</div>
+                  <div className="text-sm font-semibold text-brand-ink">{formatMoney(result.materialOrderCost / result.quantity)}</div>
+                </div>
+              </div>
+            )}
+
             {glueLineCount > 0 && (
               <div className="mt-4">
                 <div className="text-xs font-medium text-brand-gray-dark mb-1">Межслойный клей</div>
                 <div className="grid sm:grid-cols-2 gap-2">
-                  {glueLineTypes.slice(0, glueLineCount).map((type, index) => (
+                  {glueLineTypes.slice(0, glueLineCount).map((type, index) => {
+                    const lineResult = result?.glueDetails.find((g) => g.lineIndex === index)
+                    return (
+                    <div key={index} className="flex flex-col gap-1">
                     <select
-                      key={index}
                       value={type}
                       onChange={(e) => {
                         const next = [...glueLineTypes]
@@ -815,7 +857,14 @@ export function OrderCalculatorPage() {
                       <option value="liquid">Слой {index + 1}↔{index + 2}: жидкое стекло</option>
                       <option value="none">Слой {index + 1}↔{index + 2}: не считать</option>
                     </select>
-                  ))}
+                    <div className="text-[11px] text-brand-gray-dark pl-1">
+                      {lineResult
+                        ? `${formatNumber(lineResult.norm)} г/м² · ${formatMoney(lineResult.price)}/кг · ${lineResult.kg.toFixed(2)} кг`
+                        : 'не считается'}
+                    </div>
+                    </div>
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -851,10 +900,31 @@ export function OrderCalculatorPage() {
                 <NumField label="Количество цветов" value={colors} onChange={setColors} />
               )}
               {(printType === 'offset' || printType === 'service') && (
-                <NumField label={printType === 'offset' ? 'Офсет, сум/лист (0=авто)' : 'Цена услуги, сум/короб.'} value={printRate} onChange={setPrintRate} money />
+                <div className="flex flex-col gap-1">
+                  <NumField
+                    label={printType === 'offset' ? 'Офсет, сум/лист (0=авто)' : 'Цена услуги, сум/короб.'}
+                    value={printType === 'offset' && !printRate && result ? result.printRate : printRate}
+                    onChange={setPrintRate}
+                    money
+                  />
+                  {printType === 'offset' && !printRate && result && result.printRate > 0 && (
+                    <span className="text-[10px] text-brand-gray-dark">автоматически по тиражу — можно изменить</span>
+                  )}
+                </div>
               )}
               {printType !== 'none' && <NumField label="Клише, сум" value={plateFee} onChange={setPlateFee} money />}
             </div>
+
+            {result && (
+              <div className="mt-2 text-xs text-brand-gray-dark bg-brand-gray rounded-lg px-3 py-2">
+                {printType === 'none' && 'Печать не включена.'}
+                {printType === 'offset' &&
+                  `Офсет: ${formatNumber(result.sheetRun)} листов × ${formatMoney(result.printRate)} = ${formatMoney(result.printOrderCost)}`}
+                {printType === 'flexo' && `Флексопечать рассчитана по маршруту: ${formatMoney(result.printOrderCost)} за заказ.`}
+                {printType === 'service' &&
+                  `Услуга печати: ${formatNumber(result.quantity)} коробок × ${formatMoney(result.printRate)} = ${formatMoney(result.printOrderCost)}`}
+              </div>
+            )}
 
             <div className="mt-4">
               <div className="text-xs font-medium text-brand-gray-dark mb-1.5">Маршрут (выберите операции)</div>
@@ -879,6 +949,29 @@ export function OrderCalculatorPage() {
                 })}
               </div>
             </div>
+
+            {result && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-brand-border rounded-xl overflow-hidden mt-4">
+                <div className="bg-brand-gray p-3">
+                  <div className="text-[10px] text-brand-gray-dark">Операций</div>
+                  <div className="text-sm font-semibold text-brand-ink">
+                    {result.operationDetails.filter((op) => op.active).length}
+                  </div>
+                </div>
+                <div className="bg-brand-gray p-3">
+                  <div className="text-[10px] text-brand-gray-dark">Время</div>
+                  <div className="text-sm font-semibold text-brand-ink">{result.routeTime.toFixed(2)} ч</div>
+                </div>
+                <div className="bg-brand-gray p-3">
+                  <div className="text-[10px] text-brand-gray-dark">Человеко-часы</div>
+                  <div className="text-sm font-semibold text-brand-ink">{result.laborHours.toFixed(2)} ч</div>
+                </div>
+                <div className="bg-brand-gray p-3">
+                  <div className="text-[10px] text-brand-gray-dark">Маршрут / короб.</div>
+                  <div className="text-sm font-semibold text-brand-ink">{formatMoney(result.routeOrderCost / result.quantity)}</div>
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Step 4: price & conditions */}
@@ -975,12 +1068,15 @@ export function OrderCalculatorPage() {
                       <div className="text-sm font-semibold">{result.actualMargin.toFixed(2)}%</div>
                     </div>
                     <div className="bg-black/40 p-3">
-                      <div className="text-[10px] text-white/45">Итого заказ</div>
-                      <div className="text-sm font-semibold">{formatMoney(result.totalVat)}</div>
+                      <div className="text-[10px] text-white/45">Прибыль заказа</div>
+                      <div className="text-sm font-semibold">{formatMoney(result.totalProfit)}</div>
                     </div>
                   </div>
 
-                  <div className="text-xs font-semibold mb-1.5">Структура себестоимости</div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-semibold">Структура себестоимости</span>
+                    <span className="text-xs text-white/50">{formatMoney(result.totalCost)}</span>
+                  </div>
                   <div className="flex flex-col gap-1 text-xs text-white/70 mb-4">
                     <Row label="Материалы" value={result.materialOrderCost} />
                     <Row label="Клей" value={result.glueOrderCost} />
@@ -990,7 +1086,7 @@ export function OrderCalculatorPage() {
                     <Row label="Логистика" value={result.logisticsOrderCost} />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-px bg-white/10 rounded-xl overflow-hidden text-xs">
+                  <div className="grid grid-cols-3 gap-px bg-white/10 rounded-xl overflow-hidden text-xs">
                     <div className="bg-black/40 p-3">
                       <div className="text-[10px] text-white/45">Бумага</div>
                       <div>{formatNumber(result.paperWeight)} кг</div>
@@ -1006,6 +1102,14 @@ export function OrderCalculatorPage() {
                     <div className="bg-black/40 p-3">
                       <div className="text-[10px] text-white/45">Время маршрута</div>
                       <div>{result.routeTime.toFixed(1)} ч</div>
+                    </div>
+                    <div className="bg-black/40 p-3">
+                      <div className="text-[10px] text-white/45">Электроэнергия</div>
+                      <div>{result.energyQty.toFixed(1)} кВт·ч</div>
+                    </div>
+                    <div className="bg-black/40 p-3">
+                      <div className="text-[10px] text-white/45">Газ</div>
+                      <div>{result.gasQty.toFixed(2)} м³</div>
                     </div>
                   </div>
 
@@ -1033,6 +1137,7 @@ export function OrderCalculatorPage() {
                 <span className="text-[10px] text-white/50">Итого за заказ с НДС</span>
                 <span className="text-lg font-bold text-white">{formatMoney(result.totalVat)}</span>
               </div>
+              <div className="text-right text-[10px] text-white/35">включая НДС: {formatMoney(result.vatAmount)}</div>
 
               <button
                 type="button"
