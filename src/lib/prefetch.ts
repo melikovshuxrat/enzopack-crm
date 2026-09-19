@@ -14,7 +14,7 @@ export function prefetchInitialData(queryClient: QueryClient) {
       queryFn: async () => {
         const { data, error } = await supabase
           .from('orders')
-          .select('*, client:clients(id,name,company,logo_url), product:finished_products(id,code,name,photo_url)')
+          .select('*, client:clients(id,name,company), product:finished_products(id,code,name)')
           .order('created_at', { ascending: false })
         if (error) throw error
         return data

@@ -39,12 +39,12 @@ export function DebtsPanel() {
   const zeroBalance: Balance = { total: 0, paid: 0, debt: 0 }
 
   const clientRows = clients
-    .map((c) => ({ ...c, balance: clientBalances?.get(c.id) ?? zeroBalance }))
+    .map((c) => ({ ...c, balance: clientBalances?.[c.id] ?? zeroBalance }))
     .filter((c) => showAllClients || c.balance.debt !== 0)
     .sort((a, b) => Math.abs(b.balance.debt) - Math.abs(a.balance.debt))
 
   const supplierRows = suppliers
-    .map((s) => ({ ...s, balance: supplierBalances?.get(s.id) ?? zeroBalance }))
+    .map((s) => ({ ...s, balance: supplierBalances?.[s.id] ?? zeroBalance }))
     .filter((s) => showAllSuppliers || s.balance.debt !== 0)
     .sort((a, b) => Math.abs(b.balance.debt) - Math.abs(a.balance.debt))
 
@@ -137,7 +137,7 @@ function ClientDebtDetail({ clientId }: { clientId: string }) {
         <div className="text-xs text-brand-gray-dark">Заказов нет</div>
       ) : (
         relevant.map((o) => {
-          const paid = payments?.get(o.id) ?? 0
+          const paid = payments?.[o.id] ?? 0
           const debt = Number(o.total_amount) - paid
           return (
             <div key={o.id} className="flex items-center justify-between gap-2 text-xs flex-wrap">

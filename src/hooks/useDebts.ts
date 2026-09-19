@@ -8,12 +8,16 @@ export interface Balance {
   debt: number
 }
 
-function toBalances(totals: Map<string, number>, paid: Map<string, number>): Map<string, Balance> {
-  const result = new Map<string, Balance>()
-  for (const id of new Set([...totals.keys(), ...paid.keys()])) {
-    const total = totals.get(id) ?? 0
-    const p = paid.get(id) ?? 0
-    result.set(id, { total, paid: p, debt: total - p })
+// Plain objects, not Maps: the React Query cache is persisted to localStorage
+// as JSON, and a Map would come back as {} and crash on .get()/.values().
+export type BalanceMap = Record<string, Balance>
+
+function toBalances(totals: Record<string, number>, paid: Record<string, number>): BalanceMap {
+  const result: BalanceMap = {}
+  for (const id of new Set([...Object.keys(totals), ...Object.keys(paid)])) {
+    const total = totals[id] ?? 0
+    const p = paid[id] ?? 0
+    result[id] = { total, paid: p, debt: total - p }
   }
   return result
 }
@@ -33,14 +37,14 @@ export function useClientBalances() {
       if (ordersError) throw ordersError
       if (txError) throw txError
 
-      const totals = new Map<string, number>()
+      const totals: Record<string, number> = {}
       for (const o of orders ?? []) {
-        totals.set(o.client_id, (totals.get(o.client_id) ?? 0) + Number(o.total_amount))
+        totals[o.client_id] = (totals[o.client_id] ?? 0) + Number(o.total_amount)
       }
-      const paid = new Map<string, number>()
+      const paid: Record<string, number> = {}
       for (const t of txs ?? []) {
         if (!t.related_client_id) continue
-        paid.set(t.related_client_id, (paid.get(t.related_client_id) ?? 0) + Number(t.amount))
+        paid[t.related_client_id] = (paid[t.related_client_id] ?? 0) + Number(t.amount)
       }
       return toBalances(totals, paid)
     },
@@ -62,15 +66,15 @@ export function useSupplierBalances() {
       if (delError) throw delError
       if (txError) throw txError
 
-      const totals = new Map<string, number>()
+      const totals: Record<string, number> = {}
       for (const d of deliveries ?? []) {
         if (d.total_cost == null) continue
-        totals.set(d.supplier_id, (totals.get(d.supplier_id) ?? 0) + Number(d.total_cost))
+        totals[d.supplier_id] = (totals[d.supplier_id] ?? 0) + Number(d.total_cost)
       }
-      const paid = new Map<string, number>()
+      const paid: Record<string, number> = {}
       for (const t of txs ?? []) {
         if (!t.related_supplier_id) continue
-        paid.set(t.related_supplier_id, (paid.get(t.related_supplier_id) ?? 0) + Number(t.amount))
+        paid[t.related_supplier_id] = (paid[t.related_supplier_id] ?? 0) + Number(t.amount)
       }
       return toBalances(totals, paid)
     },
@@ -89,10 +93,10 @@ export function useOrderPayments(clientId: string | undefined) {
         .eq('type', 'income')
         .eq('related_client_id', clientId as string)
       if (error) throw error
-      const map = new Map<string, number>()
+      const map: Record<string, number> = {}
       for (const t of data ?? []) {
         if (!t.related_order_id) continue
-        map.set(t.related_order_id, (map.get(t.related_order_id) ?? 0) + Number(t.amount))
+        map[t.related_order_id] = (map[t.related_order_id] ?? 0) + Number(t.amount)
       }
       return map
     },

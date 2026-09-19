@@ -56,13 +56,13 @@ export function FinancePage() {
 
   const owedToUs = useMemo(() => {
     let sum = 0
-    for (const b of clientBalances?.values() ?? []) sum += Math.max(0, b.debt)
+    for (const b of Object.values(clientBalances ?? {})) sum += Math.max(0, b.debt)
     return sum
   }, [clientBalances])
 
   const weOwe = useMemo(() => {
     let sum = 0
-    for (const b of supplierBalances?.values() ?? []) sum += Math.max(0, b.debt)
+    for (const b of Object.values(supplierBalances ?? {})) sum += Math.max(0, b.debt)
     return sum
   }, [supplierBalances])
 

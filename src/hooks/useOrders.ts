@@ -10,7 +10,7 @@ export function useOrders(status?: OrderStatus) {
     queryFn: async () => {
       let query = supabase
         .from('orders')
-        .select('*, client:clients(id,name,company,logo_url), product:finished_products(id,code,name,photo_url)')
+        .select('*, client:clients(id,name,company), product:finished_products(id,code,name)')
         .order('created_at', { ascending: false })
       if (status) query = query.eq('status', status)
       const { data, error } = await query
@@ -27,7 +27,7 @@ export function useClientOrders(clientId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select('*, product:finished_products(id,code,name,photo_url)')
+        .select('*, product:finished_products(id,code,name)')
         .eq('client_id', clientId)
         .order('created_at', { ascending: false })
       if (error) throw error

@@ -53,7 +53,7 @@ export function SuppliersPage() {
       key: 'debt',
       header: 'Долг',
       render: (s) => {
-        const debt = balances?.get(s.id)?.debt ?? 0
+        const debt = balances?.[s.id]?.debt ?? 0
         if (debt === 0) return '—'
         return (
           <span className={debt > 0 ? 'text-red-600 font-semibold' : 'text-green-700 font-semibold'}>
@@ -282,7 +282,7 @@ export function SuppliersPage() {
             {editing.id && (
               <>
                 {(() => {
-                  const balance = balances?.get(editing.id) ?? { total: 0, paid: 0, debt: 0 }
+                  const balance = balances?.[editing.id] ?? { total: 0, paid: 0, debt: 0 }
                   return (
                     <div className="border border-brand-border rounded-xl p-3">
                       <div className="text-sm font-medium text-brand-ink mb-2">Долг</div>

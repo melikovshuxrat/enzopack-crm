@@ -32,7 +32,7 @@ export function ClientsPage() {
       key: 'debt',
       header: 'Долг',
       render: (c) => {
-        const debt = balances?.get(c.id)?.debt ?? 0
+        const debt = balances?.[c.id]?.debt ?? 0
         if (debt === 0) return '—'
         return (
           <span className={debt > 0 ? 'text-green-700 font-semibold' : 'text-red-600 font-semibold'}>
@@ -163,7 +163,7 @@ export function ClientsPage() {
                 ) : (
                   <div className="flex flex-col gap-1.5 max-h-56 overflow-y-auto">
                     {orders.map((o) => {
-                      const paid = orderPayments?.get(o.id) ?? 0
+                      const paid = orderPayments?.[o.id] ?? 0
                       const orderDebt = Number(o.total_amount) - paid
                       return (
                         <div
