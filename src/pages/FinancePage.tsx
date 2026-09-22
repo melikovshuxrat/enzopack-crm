@@ -45,6 +45,8 @@ function categoryLabel(category: string | null): string | null {
   if (category === 'order_delivery_settlement') return 'Оплата при доставке'
   if (category === 'supplier_delivery') return 'Закуп у поставщика'
   if (category === 'supplier_payment') return 'Доплата поставщику'
+  if (category === 'employee_advance') return 'Аванс сотруднику'
+  if (category === 'employee_payout') return 'Зарплата на руки'
   return category
 }
 
@@ -101,6 +103,7 @@ export function FinancePage() {
   const [amount, setAmount] = useState(0)
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('')
+  const [transactionDate, setTransactionDate] = useState(() => new Date().toISOString().slice(0, 10))
 
   async function handleAdd() {
     if (!amount || tab !== 'income' && tab !== 'expense') return
@@ -109,11 +112,12 @@ export function FinancePage() {
       amount,
       description: description || null,
       category: category || null,
-      transaction_date: new Date().toISOString().slice(0, 10),
+      transaction_date: transactionDate,
     })
     setAmount(0)
     setDescription('')
     setCategory('')
+    setTransactionDate(new Date().toISOString().slice(0, 10))
   }
 
   return (
@@ -260,6 +264,15 @@ export function FinancePage() {
               className="border border-brand-border rounded-lg px-3 py-1.5 text-sm w-full outline-none focus:border-brand-yellow"
             />
           </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-brand-gray-dark">Дата</span>
+            <input
+              type="date"
+              value={transactionDate}
+              onChange={(e) => setTransactionDate(e.target.value)}
+              className="border border-brand-border rounded-lg px-3 py-1.5 text-sm outline-none focus:border-brand-yellow"
+            />
+          </label>
           <button
             type="button"
             onClick={handleAdd}
@@ -294,7 +307,9 @@ export function FinancePage() {
                   ? t.related_client.name
                   : (t.category === 'supplier_delivery' || t.category === 'supplier_payment') && t.related_supplier
                     ? t.related_supplier.name
-                    : t.description}
+                    : (t.category === 'employee_advance' || t.category === 'employee_payout') && t.related_employee
+                      ? t.related_employee.full_name
+                      : t.description}
               </span>
               <span className="text-brand-gray-dark whitespace-nowrap">
                 {formatDate(t.transaction_date)}

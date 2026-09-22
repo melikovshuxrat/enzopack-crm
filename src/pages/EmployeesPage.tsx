@@ -5,13 +5,16 @@ import { FormField } from '../components/common/FormField'
 import { formatMoney, getDeleteErrorMessage, getErrorMessage } from '../lib/formatters'
 import {
   useAllEmployeeDailyHours,
+  useAllEmployeeHoursHistory,
+  useAllEmployeePayments,
+  useCreateEmployeePayment,
   useDeleteEmployee,
   useEmployeeDailyHours,
   useEmployees,
   useUpsertEmployee,
   useUpsertEmployeeDailyHours,
 } from '../hooks/useEmployees'
-import type { Employee } from '../types/db'
+import type { Employee, EmployeePaymentType } from '../types/db'
 
 const EMPTY: Partial<Employee> = {
   full_name: '',
@@ -85,6 +88,8 @@ export function EmployeesPage() {
   }, [filterMode, filterYear, filterMonth, filterDay, filterFrom, filterTo])
 
   const { data: allDailyHours = [] } = useAllEmployeeDailyHours(from, to)
+  const { data: allHoursHistory = [] } = useAllEmployeeHoursHistory()
+  const { data: allPayments = [] } = useAllEmployeePayments()
 
   function openEdit(id: string) {
     setEditing(employees.find((e) => e.id === id) ?? EMPTY)
@@ -277,6 +282,16 @@ export function EmployeesPage() {
 
       {isLoading ? (
         <div className="text-brand-gray-dark">Загрузка…</div>
+      ) : filterMode === 'month' ? (
+        <EmployeeJournalTable
+          employees={employees}
+          year={filterYear}
+          month={filterMonth}
+          dailyHours={allDailyHours}
+          hoursHistory={allHoursHistory}
+          payments={allPayments}
+          onEditEmployee={(e) => openEdit(e.id)}
+        />
       ) : (
         <DataTable
           columns={columns}
@@ -525,6 +540,285 @@ function EmployeeHoursCard({
           className="mt-4 w-full px-4 py-2 rounded-lg text-sm font-semibold bg-brand-yellow text-brand-black hover:brightness-95 transition"
         >
           Закрыть
+        </button>
+      </div>
+    </div>
+  )
+}
+
+interface JournalEmployeeRow {
+  employee: Employee
+  hoursByDay: Map<number, number>
+  totalHours: number
+  earnedThisMonth: number
+  debtBeforeMonth: number
+  advanceThisMonth: number
+  payoutThisMonth: number
+  debtAfterMonth: number
+}
+
+function EmployeeJournalTable({
+  employees,
+  year,
+  month,
+  dailyHours,
+  hoursHistory,
+  payments,
+  onEditEmployee,
+}: {
+  employees: Employee[]
+  year: number
+  month: number
+  dailyHours: { employee_id: string; work_date: string; hours: number }[]
+  hoursHistory: { employee_id: string; month: string; hours_worked: number; salary_snapshot: number; norm_hours_snapshot: number }[]
+  payments: { employee_id: string; payment_date: string; type: EmployeePaymentType; amount: number }[]
+  onEditEmployee: (employee: Employee) => void
+}) {
+  const upsertDaily = useUpsertEmployeeDailyHours()
+  const createPayment = useCreateEmployeePayment()
+  const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map())
+
+  const monthKeySel = `${year}-${pad2(month)}`
+  const monthStart = `${monthKeySel}-01`
+  const days = lastDayOfMonth(year, month)
+  const today = todayISO()
+
+  const rows: JournalEmployeeRow[] = useMemo(() => {
+    return employees.map((employee) => {
+      const hoursByDay = new Map<number, number>()
+      for (const h of dailyHours) {
+        if (h.employee_id !== employee.id) continue
+        if (monthKey(h.work_date) !== monthKeySel) continue
+        hoursByDay.set(Number(h.work_date.slice(8, 10)), Number(h.hours))
+      }
+      const totalHours = Array.from(hoursByDay.values()).reduce((s, h) => s + h, 0)
+
+      let earnedThisMonth = 0
+      let earnedBeforeMonth = 0
+      for (const row of hoursHistory) {
+        if (row.employee_id !== employee.id) continue
+        // salary_snapshot is the configured monthly salary at that time, not
+        // hours-adjusted pay — the actual accrual is salary × hours/norm,
+        // same formula already used in payForEmployeeInRange/EmployeeHoursCard.
+        const accrued = (Number(row.salary_snapshot) * Number(row.hours_worked)) / (Number(row.norm_hours_snapshot) || 1)
+        const rowMonthKey = row.month.slice(0, 7)
+        if (rowMonthKey === monthKeySel) earnedThisMonth += accrued
+        else if (rowMonthKey < monthKeySel) earnedBeforeMonth += accrued
+      }
+
+      let paidBeforeMonth = 0
+      let advanceThisMonth = 0
+      let payoutThisMonth = 0
+      for (const p of payments) {
+        if (p.employee_id !== employee.id) continue
+        if (p.payment_date < monthStart) {
+          paidBeforeMonth += Number(p.amount)
+        } else if (p.payment_date.slice(0, 7) === monthKeySel) {
+          if (p.type === 'advance') advanceThisMonth += Number(p.amount)
+          else payoutThisMonth += Number(p.amount)
+        }
+      }
+
+      const debtBeforeMonth = earnedBeforeMonth - paidBeforeMonth
+      const debtAfterMonth = debtBeforeMonth + earnedThisMonth - advanceThisMonth - payoutThisMonth
+
+      return { employee, hoursByDay, totalHours, earnedThisMonth, debtBeforeMonth, advanceThisMonth, payoutThisMonth, debtAfterMonth }
+    })
+  }, [employees, dailyHours, hoursHistory, payments, monthKeySel, monthStart])
+
+  function focusCell(day: number, rowIndex: number) {
+    inputRefs.current.get(`${day}-${rowIndex}`)?.focus()
+  }
+
+  async function saveDay(employeeId: string, day: number, hours: number) {
+    const work_date = `${monthKeySel}-${pad2(day)}`
+    try {
+      await upsertDaily.mutateAsync({ employee_id: employeeId, work_date, hours })
+    } catch (error) {
+      alert(`Не удалось сохранить часы: ${getErrorMessage(error)}`)
+    }
+  }
+
+  if (employees.length === 0) {
+    return <div className="text-brand-gray-dark py-10 text-center">Сотрудников пока нет</div>
+  }
+
+  return (
+    <div className="overflow-x-auto border border-brand-border rounded-xl bg-white">
+      <table className="border-collapse text-xs w-full">
+        <thead>
+          <tr className="bg-brand-gray text-brand-gray-dark">
+            <th className="sticky left-0 bg-brand-gray px-3 py-2 text-left font-medium whitespace-nowrap">Сотрудник</th>
+            {Array.from({ length: days }, (_, i) => i + 1).map((day) => (
+              <th
+                key={day}
+                className={`px-1 py-2 font-medium w-9 ${`${monthKeySel}-${pad2(day)}` === today ? 'bg-brand-yellow-light text-brand-ink' : ''}`}
+              >
+                {day}
+              </th>
+            ))}
+            <th className="px-2 py-2 font-medium whitespace-nowrap">Часы</th>
+            <th className="px-2 py-2 font-medium whitespace-nowrap">Долг на начало</th>
+            <th className="px-2 py-2 font-medium whitespace-nowrap">Начислено</th>
+            <th className="px-2 py-2 font-medium whitespace-nowrap">Аванс</th>
+            <th className="px-2 py-2 font-medium whitespace-nowrap">На руки</th>
+            <th className="px-2 py-2 font-medium whitespace-nowrap">Долг на конец</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, rowIndex) => (
+            <tr key={row.employee.id} className="border-t border-brand-border">
+              <td
+                className="sticky left-0 bg-white px-3 py-1.5 whitespace-nowrap cursor-pointer hover:underline"
+                onClick={() => onEditEmployee(row.employee)}
+              >
+                <div className="font-medium text-brand-ink">{row.employee.full_name}</div>
+                {row.employee.position && <div className="text-[10px] text-brand-gray-dark">{row.employee.position}</div>}
+              </td>
+              {Array.from({ length: days }, (_, i) => i + 1).map((day) => {
+                const isToday = `${monthKeySel}-${pad2(day)}` === today
+                return (
+                  <td key={day} className={`p-0.5 ${isToday ? 'bg-brand-yellow-light/40' : ''}`}>
+                    <input
+                      ref={(el) => {
+                        if (el) inputRefs.current.set(`${day}-${rowIndex}`, el)
+                        else inputRefs.current.delete(`${day}-${rowIndex}`)
+                      }}
+                      type="number"
+                      min={0}
+                      max={24}
+                      step="0.5"
+                      defaultValue={row.hoursByDay.get(day) || ''}
+                      onFocus={(e) => e.target.select()}
+                      onBlur={(e) => saveDay(row.employee.id, day, Number(e.target.value) || 0)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === 'ArrowDown') {
+                          e.preventDefault()
+                          ;(e.target as HTMLInputElement).blur()
+                          focusCell(day, rowIndex + 1)
+                        } else if (e.key === 'ArrowUp') {
+                          e.preventDefault()
+                          ;(e.target as HTMLInputElement).blur()
+                          focusCell(day, rowIndex - 1)
+                        }
+                      }}
+                      className="w-9 border-0 bg-transparent text-center outline-none focus:bg-brand-yellow-light rounded py-1"
+                    />
+                  </td>
+                )
+              })}
+              <td className="px-2 py-1.5 text-center font-medium whitespace-nowrap">{row.totalHours.toFixed(1)}</td>
+              <td className={`px-2 py-1.5 text-center whitespace-nowrap ${row.debtBeforeMonth > 0 ? 'text-red-600' : 'text-brand-gray-dark'}`}>
+                {row.debtBeforeMonth !== 0 ? formatMoney(row.debtBeforeMonth) : '—'}
+              </td>
+              <td className="px-2 py-1.5 text-center font-medium whitespace-nowrap">{formatMoney(row.earnedThisMonth)}</td>
+              <td className="px-1 py-1.5 text-center whitespace-nowrap">
+                <PayoutCell
+                  amount={row.advanceThisMonth}
+                  onSave={(amount, comment) =>
+                    createPayment.mutateAsync({
+                      employee_id: row.employee.id,
+                      payment_date: todayISO(),
+                      type: 'advance',
+                      amount,
+                      comment,
+                    })
+                  }
+                />
+              </td>
+              <td className="px-1 py-1.5 text-center whitespace-nowrap">
+                <PayoutCell
+                  amount={row.payoutThisMonth}
+                  onSave={(amount, comment) =>
+                    createPayment.mutateAsync({
+                      employee_id: row.employee.id,
+                      payment_date: todayISO(),
+                      type: 'payout',
+                      amount,
+                      comment,
+                    })
+                  }
+                />
+              </td>
+              <td className={`px-2 py-1.5 text-center font-semibold whitespace-nowrap ${row.debtAfterMonth > 0 ? 'text-red-600' : 'text-green-700'}`}>
+                {formatMoney(row.debtAfterMonth)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function PayoutCell({ amount, onSave }: { amount: number; onSave: (amount: number, comment: string | null) => Promise<void> }) {
+  const [open, setOpen] = useState(false)
+  const [value, setValue] = useState(0)
+  const [comment, setComment] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    if (value <= 0) return
+    setSaving(true)
+    try {
+      await onSave(value, comment || null)
+      setValue(0)
+      setComment('')
+      setOpen(false)
+    } catch (error) {
+      alert(`Не удалось сохранить: ${getErrorMessage(error)}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-1 mx-auto text-brand-ink hover:text-brand-yellow-dark"
+        title="Добавить"
+      >
+        <span>{amount > 0 ? formatMoney(amount) : '—'}</span>
+        <span className="text-brand-yellow-dark font-bold">+</span>
+      </button>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-1 items-stretch bg-brand-gray rounded-lg p-1.5 min-w-[110px]">
+      <input
+        type="number"
+        placeholder="Сумма"
+        value={value || ''}
+        autoFocus
+        onFocus={(e) => e.target.select()}
+        onChange={(e) => setValue(Number(e.target.value))}
+        className="border border-brand-border rounded px-1 py-0.5 text-xs outline-none focus:border-brand-yellow"
+      />
+      <input
+        type="text"
+        placeholder="Причина"
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        className="border border-brand-border rounded px-1 py-0.5 text-xs outline-none focus:border-brand-yellow"
+      />
+      <div className="flex gap-1">
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={value <= 0 || saving}
+          className="flex-1 text-xs font-semibold px-1.5 py-0.5 rounded bg-brand-yellow text-brand-black disabled:opacity-50"
+        >
+          ОК
+        </button>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="text-xs px-1.5 py-0.5 rounded text-brand-gray-dark hover:bg-white"
+        >
+          ✕
         </button>
       </div>
     </div>

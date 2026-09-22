@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabaseClient'
-import type { Employee, EmployeeDailyHours, EmployeeHours } from '../types/db'
+import type { Employee, EmployeeDailyHours, EmployeeHours, EmployeePayment, EmployeePaymentType } from '../types/db'
 
 const KEY = ['employees']
 
@@ -56,6 +56,19 @@ export function useEmployeeHours(month: string) {
     enabled: !!month,
     queryFn: async () => {
       const { data, error } = await supabase.from('employee_hours').select('*').eq('month', month)
+      if (error) throw error
+      return data as EmployeeHours[]
+    },
+  })
+}
+
+/** Every monthly salary snapshot for every employee — used to compute the
+ * running "долг на начало месяца" (accrued-to-date minus paid-to-date). */
+export function useAllEmployeeHoursHistory() {
+  return useQuery({
+    queryKey: ['employee_hours', 'all'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('employee_hours').select('*')
       if (error) throw error
       return data as EmployeeHours[]
     },
@@ -131,6 +144,74 @@ export function useUpsertEmployeeHours() {
     },
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['employee_hours', variables.month] })
+    },
+  })
+}
+
+export function useEmployeePayments(employeeId: string | undefined, from: string, to: string) {
+  return useQuery({
+    queryKey: ['employee_payments', employeeId, from, to],
+    enabled: !!employeeId && !!from && !!to,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('employee_payments')
+        .select('*')
+        .eq('employee_id', employeeId)
+        .gte('payment_date', from)
+        .lte('payment_date', to)
+        .order('payment_date', { ascending: false })
+      if (error) throw error
+      return data as EmployeePayment[]
+    },
+  })
+}
+
+/** All payroll payments across every employee, for balance/journal aggregation without one query per employee. */
+export function useAllEmployeePayments(from?: string, to?: string) {
+  return useQuery({
+    queryKey: ['employee_payments', 'all', from ?? '', to ?? ''],
+    queryFn: async () => {
+      let query = supabase.from('employee_payments').select('*').order('payment_date', { ascending: false })
+      if (from) query = query.gte('payment_date', from)
+      if (to) query = query.lte('payment_date', to)
+      const { data, error } = await query
+      if (error) throw error
+      return data as EmployeePayment[]
+    },
+  })
+}
+
+/** Records an advance/payout and, mirroring supplier deliveries, automatically
+ * logs the matching expense in Finance — so cash balance stays correct without
+ * a second manual entry. */
+export function useCreateEmployeePayment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (input: {
+      employee_id: string
+      payment_date: string
+      type: EmployeePaymentType
+      amount: number
+      comment?: string | null
+    }) => {
+      const { error } = await supabase.from('employee_payments').insert(input)
+      if (error) throw error
+
+      const { error: txError } = await supabase.from('finance_transactions').insert({
+        type: 'expense',
+        category: input.type === 'advance' ? 'employee_advance' : 'employee_payout',
+        amount: input.amount,
+        related_employee_id: input.employee_id,
+        description: input.comment || null,
+        transaction_date: input.payment_date,
+      })
+      if (txError) throw txError
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['employee_payments'] })
+      qc.invalidateQueries({ queryKey: ['finance_transactions'] })
+      qc.invalidateQueries({ queryKey: ['cash_balance'] })
+      qc.invalidateQueries({ queryKey: ['employee_balances'] })
     },
   })
 }

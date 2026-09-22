@@ -144,3 +144,30 @@ export function useSupplierPayments(supplierId: string | undefined) {
     },
   })
 }
+
+/** Lifetime running balance per employee: all-time accrued salary (employee_hours.salary_snapshot)
+ * minus all-time advance/payout payments. Not wired into any page yet — kept ready for when
+ * Finance wants an employee-debt summary, same shape as client/supplier balances. */
+export function useEmployeeBalances() {
+  return useQuery({
+    queryKey: ['employee_balances'],
+    queryFn: async () => {
+      const [{ data: hours, error: hoursError }, { data: payments, error: payError }] = await Promise.all([
+        supabase.from('employee_hours').select('employee_id, salary_snapshot'),
+        supabase.from('employee_payments').select('employee_id, amount'),
+      ])
+      if (hoursError) throw hoursError
+      if (payError) throw payError
+
+      const totals: Record<string, number> = {}
+      for (const h of hours ?? []) {
+        totals[h.employee_id] = (totals[h.employee_id] ?? 0) + Number(h.salary_snapshot)
+      }
+      const paid: Record<string, number> = {}
+      for (const p of payments ?? []) {
+        paid[p.employee_id] = (paid[p.employee_id] ?? 0) + Number(p.amount)
+      }
+      return toBalances(totals, paid)
+    },
+  })
+}

@@ -10,7 +10,9 @@ export function useFinanceTransactions(type?: 'income' | 'expense', from?: strin
     queryFn: async () => {
       let query = supabase
         .from('finance_transactions')
-        .select('*, related_client:clients(id,name), related_supplier:suppliers(id,name), related_order:orders(id)')
+        .select(
+          '*, related_client:clients(id,name), related_supplier:suppliers(id,name), related_order:orders(id), related_employee:employees(id,full_name)',
+        )
         .order('transaction_date', { ascending: false })
       if (type) query = query.eq('type', type)
       if (from) query = query.gte('transaction_date', from)
@@ -20,6 +22,7 @@ export function useFinanceTransactions(type?: 'income' | 'expense', from?: strin
       return data as (FinanceTransaction & {
         related_client: { id: string; name: string } | null
         related_supplier: { id: string; name: string } | null
+        related_employee: { id: string; full_name: string } | null
       })[]
     },
   })

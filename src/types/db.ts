@@ -108,8 +108,21 @@ export interface FinanceTransaction {
   related_order_id: string | null
   related_supplier_id: string | null
   related_client_id: string | null
+  related_employee_id: string | null
   description: string | null
   transaction_date: string
+  created_at: string
+}
+
+export type EmployeePaymentType = 'advance' | 'payout'
+
+export interface EmployeePayment {
+  id: string
+  employee_id: string
+  payment_date: string
+  type: EmployeePaymentType
+  amount: number
+  comment: string | null
   created_at: string
 }
 
