@@ -644,27 +644,31 @@ function EmployeeJournalTable({
   }
 
   return (
-    <div className="overflow-x-auto border border-brand-border rounded-xl bg-white">
-      <table className="border-collapse text-xs w-full">
-        <thead>
-          <tr className="bg-brand-gray text-brand-gray-dark">
-            <th className="sticky left-0 bg-brand-gray px-3 py-2 text-left font-medium whitespace-nowrap">Сотрудник</th>
-            {Array.from({ length: days }, (_, i) => i + 1).map((day) => (
-              <th
-                key={day}
-                className={`px-1 py-2 font-medium w-9 ${`${monthKeySel}-${pad2(day)}` === today ? 'bg-brand-yellow-light text-brand-ink' : ''}`}
-              >
-                {day}
-              </th>
-            ))}
-            <th className="px-2 py-2 font-medium whitespace-nowrap">Часы</th>
-            <th className="px-2 py-2 font-medium whitespace-nowrap">Долг на начало</th>
-            <th className="px-2 py-2 font-medium whitespace-nowrap">Начислено</th>
-            <th className="px-2 py-2 font-medium whitespace-nowrap">Аванс</th>
-            <th className="px-2 py-2 font-medium whitespace-nowrap">На руки</th>
-            <th className="px-2 py-2 font-medium whitespace-nowrap">Долг на конец</th>
-          </tr>
-        </thead>
+    // Full-bleed: breaks out of the page's max-w-6xl container so the journal
+    // can use the whole screen width instead of squeezing 28-31 day columns
+    // into a narrow box (which was hiding days behind a scrollbar).
+    <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen px-4 md:px-8">
+      <div className="overflow-x-auto border border-brand-border rounded-xl bg-white">
+        <table className="border-collapse text-xs w-full">
+          <thead>
+            <tr className="bg-brand-gray text-brand-gray-dark">
+              <th className="sticky left-0 bg-brand-gray px-3 py-2 text-left font-medium whitespace-nowrap">Сотрудник</th>
+              {Array.from({ length: days }, (_, i) => i + 1).map((day) => (
+                <th
+                  key={day}
+                  className={`px-1 py-2 font-medium min-w-[34px] ${`${monthKeySel}-${pad2(day)}` === today ? 'bg-brand-yellow-light text-brand-ink' : ''}`}
+                >
+                  {day}
+                </th>
+              ))}
+              <th className="px-3 py-2 font-medium whitespace-nowrap min-w-[70px]">Часы</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap min-w-[110px]">Долг на начало</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap min-w-[110px]">Начислено</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap min-w-[130px]">Аванс</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap min-w-[130px]">На руки</th>
+              <th className="px-3 py-2 font-medium whitespace-nowrap min-w-[110px]">Долг на конец</th>
+            </tr>
+          </thead>
         <tbody>
           {rows.map((row, rowIndex) => (
             <tr key={row.employee.id} className="border-t border-brand-border">
@@ -707,12 +711,12 @@ function EmployeeJournalTable({
                   </td>
                 )
               })}
-              <td className="px-2 py-1.5 text-center font-medium whitespace-nowrap">{row.totalHours.toFixed(1)}</td>
-              <td className={`px-2 py-1.5 text-center whitespace-nowrap ${row.debtBeforeMonth > 0 ? 'text-red-600' : 'text-brand-gray-dark'}`}>
+              <td className="px-3 py-1.5 text-center font-medium whitespace-nowrap min-w-[70px]">{row.totalHours.toFixed(1)}</td>
+              <td className={`px-3 py-1.5 text-center whitespace-nowrap min-w-[110px] ${row.debtBeforeMonth > 0 ? 'text-red-600' : 'text-brand-gray-dark'}`}>
                 {row.debtBeforeMonth !== 0 ? formatMoney(row.debtBeforeMonth) : '—'}
               </td>
-              <td className="px-2 py-1.5 text-center font-medium whitespace-nowrap">{formatMoney(row.earnedThisMonth)}</td>
-              <td className="px-1 py-1.5 text-center whitespace-nowrap">
+              <td className="px-3 py-1.5 text-center font-medium whitespace-nowrap min-w-[110px]">{formatMoney(row.earnedThisMonth)}</td>
+              <td className="px-2 py-1.5 text-center whitespace-nowrap min-w-[130px]">
                 <PayoutCell
                   amount={row.advanceThisMonth}
                   onSave={(amount, comment) =>
@@ -726,7 +730,7 @@ function EmployeeJournalTable({
                   }
                 />
               </td>
-              <td className="px-1 py-1.5 text-center whitespace-nowrap">
+              <td className="px-2 py-1.5 text-center whitespace-nowrap min-w-[130px]">
                 <PayoutCell
                   amount={row.payoutThisMonth}
                   onSave={(amount, comment) =>
@@ -740,13 +744,14 @@ function EmployeeJournalTable({
                   }
                 />
               </td>
-              <td className={`px-2 py-1.5 text-center font-semibold whitespace-nowrap ${row.debtAfterMonth > 0 ? 'text-red-600' : 'text-green-700'}`}>
+              <td className={`px-3 py-1.5 text-center font-semibold whitespace-nowrap min-w-[110px] ${row.debtAfterMonth > 0 ? 'text-red-600' : 'text-green-700'}`}>
                 {formatMoney(row.debtAfterMonth)}
               </td>
             </tr>
           ))}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
