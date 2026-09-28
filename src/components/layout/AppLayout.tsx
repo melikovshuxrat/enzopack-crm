@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import logoMark from '../../assets/logo/logo-mark.png'
 
-const WIDE_PATHS = ['/orders/new']
+const WIDE_PATHS = ['/orders/new', '/employees']
 
 const NAV_ITEMS = [
   { to: '/', label: 'Дашборд', end: true },

@@ -644,34 +644,30 @@ function EmployeeJournalTable({
   }
 
   return (
-    // Full-bleed: breaks out of the page's max-w-6xl container so the journal
-    // can use the whole screen width instead of squeezing 28-31 day columns
-    // into a narrow box (which was hiding days behind a scrollbar).
-    <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen px-4 md:px-8">
-      <div className="overflow-x-auto border border-brand-border rounded-xl bg-white">
-        <table className="border-collapse text-xs w-full">
-          {/* top-14: offsets under the site nav (sticky top-0, h-14, z-30) so
-              the journal's own header stays visible while scrolling down. */}
-          <thead>
-            <tr className="bg-brand-gray text-brand-gray-dark">
-              <th className="sticky left-0 top-14 z-20 bg-brand-gray px-2 py-2 font-medium w-9">№</th>
-              <th className="sticky left-9 top-14 z-20 bg-brand-gray px-3 py-2 text-left font-medium whitespace-nowrap">Сотрудник</th>
-              {Array.from({ length: days }, (_, i) => i + 1).map((day) => (
-                <th
-                  key={day}
-                  className={`sticky top-14 z-10 px-1 py-2 font-medium min-w-[34px] ${`${monthKeySel}-${pad2(day)}` === today ? 'bg-brand-yellow-light text-brand-ink' : 'bg-brand-gray'}`}
-                >
-                  {day}
-                </th>
-              ))}
-              <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[70px]">Часы</th>
-              <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[110px]">Долг на начало</th>
-              <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[110px]">Начислено</th>
-              <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[130px]">Аванс</th>
-              <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[130px]">На руки</th>
-              <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[110px]">Долг на конец</th>
-            </tr>
-          </thead>
+    <div className="overflow-x-auto border border-brand-border rounded-xl bg-white">
+      <table className="border-collapse text-xs w-full">
+        {/* top-14: offsets under the site nav (sticky top-0, h-14, z-30) so
+            the journal's own header stays visible while scrolling down. */}
+        <thead>
+          <tr className="bg-brand-gray text-brand-gray-dark">
+            <th className="sticky left-0 top-14 z-20 bg-brand-gray px-2 py-2 font-medium w-9">№</th>
+            <th className="sticky left-9 top-14 z-20 bg-brand-gray px-3 py-2 text-left font-medium whitespace-nowrap">Сотрудник</th>
+            {Array.from({ length: days }, (_, i) => i + 1).map((day) => (
+              <th
+                key={day}
+                className={`sticky top-14 z-10 px-1 py-2 font-medium min-w-[44px] ${`${monthKeySel}-${pad2(day)}` === today ? 'bg-brand-yellow-light text-brand-ink' : 'bg-brand-gray'}`}
+              >
+                {day}
+              </th>
+            ))}
+            <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[70px]">Часы</th>
+            <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[110px]">Долг на начало</th>
+            <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[110px]">Начислено</th>
+            <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[130px]">Аванс</th>
+            <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[130px]">На руки</th>
+            <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[110px]">Долг на конец</th>
+          </tr>
+        </thead>
         <tbody>
           {rows.map((row, rowIndex) => (
             <tr key={row.employee.id} className="border-t border-brand-border">
@@ -690,7 +686,9 @@ function EmployeeJournalTable({
               {Array.from({ length: days }, (_, i) => i + 1).map((day) => {
                 const isToday = `${monthKeySel}-${pad2(day)}` === today
                 return (
-                  <td key={day} className={`p-0.5 ${isToday ? 'bg-brand-yellow-light/40' : ''}`}>
+                  <td key={day} className="p-1">
+                    {/* A visible "cell" box (translucent fill, rounded), not a
+                        bare number — matches the Google Sheets look asked for. */}
                     <input
                       ref={(el) => {
                         if (el) inputRefs.current.set(`${day}-${rowIndex}`, el)
@@ -714,7 +712,11 @@ function EmployeeJournalTable({
                           focusCell(day, rowIndex - 1)
                         }
                       }}
-                      className="w-9 border-0 bg-transparent text-center outline-none focus:bg-brand-yellow-light rounded py-1"
+                      className={`w-10 h-9 rounded-lg text-center text-sm font-medium outline-none border transition ${
+                        isToday
+                          ? 'bg-brand-yellow-light/60 border-brand-yellow/40'
+                          : 'bg-black/[0.04] border-black/5 hover:bg-black/[0.07]'
+                      } focus:bg-white focus:border-brand-yellow`}
                     />
                   </td>
                 )
@@ -757,9 +759,8 @@ function EmployeeJournalTable({
               </td>
             </tr>
           ))}
-          </tbody>
-        </table>
-      </div>
+        </tbody>
+      </table>
     </div>
   )
 }
