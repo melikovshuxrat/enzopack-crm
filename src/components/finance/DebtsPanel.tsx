@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { formatDate, formatMoney, formatNumber } from '../../lib/formatters'
 import { useClients } from '../../hooks/useClients'
 import { useSuppliers, useSupplierDeliveries } from '../../hooks/useSuppliers'
@@ -26,10 +27,13 @@ function debtColor(debt: number, positiveIsGood: boolean): string {
 }
 
 export function DebtsPanel() {
+  const [searchParams] = useSearchParams()
   const [showAllClients, setShowAllClients] = useState(false)
   const [showAllSuppliers, setShowAllSuppliers] = useState(false)
-  const [expandedClient, setExpandedClient] = useState<string | null>(null)
-  const [expandedSupplier, setExpandedSupplier] = useState<string | null>(null)
+  // Deep-linked from Dashboard (?client=<id> / ?supplier=<id>) opens straight
+  // to that party's detail instead of just the ranked list.
+  const [expandedClient, setExpandedClient] = useState<string | null>(searchParams.get('client'))
+  const [expandedSupplier, setExpandedSupplier] = useState<string | null>(searchParams.get('supplier'))
 
   const { data: clients = [] } = useClients()
   const { data: suppliers = [] } = useSuppliers()
@@ -40,12 +44,12 @@ export function DebtsPanel() {
 
   const clientRows = clients
     .map((c) => ({ ...c, balance: clientBalances?.[c.id] ?? zeroBalance }))
-    .filter((c) => showAllClients || c.balance.debt !== 0)
+    .filter((c) => showAllClients || c.balance.debt !== 0 || c.id === expandedClient)
     .sort((a, b) => Math.abs(b.balance.debt) - Math.abs(a.balance.debt))
 
   const supplierRows = suppliers
     .map((s) => ({ ...s, balance: supplierBalances?.[s.id] ?? zeroBalance }))
-    .filter((s) => showAllSuppliers || s.balance.debt !== 0)
+    .filter((s) => showAllSuppliers || s.balance.debt !== 0 || s.id === expandedSupplier)
     .sort((a, b) => Math.abs(b.balance.debt) - Math.abs(a.balance.debt))
 
   return (
@@ -144,6 +148,7 @@ function ClientDebtDetail({ clientId }: { clientId: string }) {
               <span className="flex-1 min-w-0 truncate">
                 #{o.product?.code} {o.product?.name} · {ORDER_STATUS_LABELS[o.status]}
               </span>
+              <span className="whitespace-nowrap text-brand-gray-dark">{formatDate(o.created_at)}</span>
               <span className="whitespace-nowrap">
                 {formatMoney(Number(o.total_amount))} · оплачено {formatMoney(paid)}
               </span>

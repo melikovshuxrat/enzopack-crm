@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { KpiCard } from '../components/common/KpiCard'
 import { MoneyInput } from '../components/common/MoneyInput'
 import { DebtsPanel } from '../components/finance/DebtsPanel'
@@ -50,8 +51,14 @@ function categoryLabel(category: string | null): string | null {
   return category
 }
 
+const TAB_KEYS = TABS.map((t) => t.key)
+
 export function FinancePage() {
-  const [tab, setTab] = useState<(typeof TABS)[number]['key']>('cash')
+  const [searchParams] = useSearchParams()
+  const initialTab = searchParams.get('tab')
+  const [tab, setTab] = useState<(typeof TABS)[number]['key']>(
+    (TAB_KEYS as string[]).includes(initialTab ?? '') ? (initialTab as (typeof TABS)[number]['key']) : 'cash',
+  )
   const { data: balance } = useCashBalance()
   const { data: clientBalances } = useClientBalances()
   const { data: supplierBalances } = useSupplierBalances()
@@ -125,11 +132,11 @@ export function FinancePage() {
       <h1 className="text-2xl font-bold text-brand-ink mb-6">Финансы</h1>
 
       <div className="flex gap-3 mb-6 flex-wrap">
-        <KpiCard label="Приход" value={formatMoney(balance?.income ?? 0)} tone="income" />
-        <KpiCard label="Расход" value={formatMoney(balance?.expense ?? 0)} tone="expense" />
-        <KpiCard label="Касса" value={formatMoney(balance?.balance ?? 0)} />
-        <KpiCard label="Нам должны" value={formatMoney(owedToUs)} tone="income" />
-        <KpiCard label="Мы должны" value={formatMoney(weOwe)} tone="expense" />
+        <KpiCard label="Приход" value={formatMoney(balance?.income ?? 0)} tone="income" onClick={() => setTab('income')} />
+        <KpiCard label="Расход" value={formatMoney(balance?.expense ?? 0)} tone="expense" onClick={() => setTab('expense')} />
+        <KpiCard label="Касса" value={formatMoney(balance?.balance ?? 0)} onClick={() => setTab('cash')} />
+        <KpiCard label="Нам должны" value={formatMoney(owedToUs)} tone="income" onClick={() => setTab('debts')} />
+        <KpiCard label="Мы должны" value={formatMoney(weOwe)} tone="expense" onClick={() => setTab('debts')} />
       </div>
 
       {tab !== 'debts' && (

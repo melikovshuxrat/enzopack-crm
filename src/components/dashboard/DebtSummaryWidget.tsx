@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { KpiCard } from '../common/KpiCard'
 import { formatMoney } from '../../lib/formatters'
 import { useClients } from '../../hooks/useClients'
@@ -5,6 +6,7 @@ import { useSuppliers } from '../../hooks/useSuppliers'
 import { useClientBalances, useSupplierBalances } from '../../hooks/useDebts'
 
 export function DebtSummaryWidget() {
+  const navigate = useNavigate()
   const { data: clients = [] } = useClients()
   const { data: suppliers = [] } = useSuppliers()
   const { data: clientBalances, isLoading: clientsLoading } = useClientBalances()
@@ -28,8 +30,18 @@ export function DebtSummaryWidget() {
     <div className="bg-white border border-brand-border rounded-2xl p-5">
       <div className="text-sm font-medium text-brand-ink mb-3">Задолженность</div>
       <div className="grid grid-cols-2 gap-3 mb-4">
-        <KpiCard label="Нам должны" value={isLoading ? '…' : formatMoney(owedToUs)} tone="income" />
-        <KpiCard label="Мы должны" value={isLoading ? '…' : formatMoney(weOwe)} tone="expense" />
+        <KpiCard
+          label="Нам должны"
+          value={isLoading ? '…' : formatMoney(owedToUs)}
+          tone="income"
+          onClick={() => navigate('/finance?tab=debts')}
+        />
+        <KpiCard
+          label="Мы должны"
+          value={isLoading ? '…' : formatMoney(weOwe)}
+          tone="expense"
+          onClick={() => navigate('/finance?tab=debts')}
+        />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -39,13 +51,18 @@ export function DebtSummaryWidget() {
           ) : (
             <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto">
               {clientDebts.map((c) => (
-                <div key={c.id} className="flex items-center justify-between gap-2 text-xs">
+                <button
+                  type="button"
+                  key={c.id}
+                  onClick={() => navigate(`/finance?tab=debts&client=${c.id}`)}
+                  className="flex items-center justify-between gap-2 text-xs text-left hover:underline"
+                >
                   <span className="text-brand-ink truncate">
                     {c.name}
                     {c.company ? ` (${c.company})` : ''}
                   </span>
                   <span className="font-semibold text-green-700 whitespace-nowrap">{formatMoney(c.debt)}</span>
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -57,10 +74,15 @@ export function DebtSummaryWidget() {
           ) : (
             <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto">
               {supplierDebts.map((s) => (
-                <div key={s.id} className="flex items-center justify-between gap-2 text-xs">
+                <button
+                  type="button"
+                  key={s.id}
+                  onClick={() => navigate(`/finance?tab=debts&supplier=${s.id}`)}
+                  className="flex items-center justify-between gap-2 text-xs text-left hover:underline"
+                >
                   <span className="text-brand-ink truncate">{s.name}</span>
                   <span className="font-semibold text-red-600 whitespace-nowrap">{formatMoney(s.debt)}</span>
-                </div>
+                </button>
               ))}
             </div>
           )}
