@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { DataTable, type DataTableColumn } from '../components/common/DataTable'
 import { EntityFormModal } from '../components/common/EntityFormModal'
 import { FormField } from '../components/common/FormField'
@@ -19,11 +19,16 @@ const EMPTY: Partial<RawMaterial> = {
   stock_qty: 0,
   format: '',
   grammage: null,
+  category: '',
 }
+
+const STARTER_CATEGORIES = ['Рулон', 'Клей', 'Этикетка', 'Доп. сырьё']
+const NEW_CATEGORY_VALUE = '__new__'
 
 const COLUMNS: DataTableColumn<RawMaterial>[] = [
   { key: 'code', header: 'Код', render: (m) => <span className="text-brand-gray-dark">#{m.code}</span> },
   { key: 'name', header: 'Название', render: (m) => <span className="font-medium text-brand-ink">{m.name}</span> },
+  { key: 'category', header: 'Категория', render: (m) => m.category || '—' },
   { key: 'supplier', header: 'Поставщик', render: (m) => m.supplier?.name || '—' },
   { key: 'unit', header: 'Ед. изм.', render: (m) => m.unit },
   { key: 'format', header: 'Формат', render: (m) => m.format || '—' },
@@ -43,14 +48,27 @@ const COLUMNS: DataTableColumn<RawMaterial>[] = [
 
 export function RawMaterialsPage() {
   const [search, setSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
   const { data: materials = [], isLoading } = useRawMaterials(search)
   const { data: suppliers = [] } = useSuppliers()
   const upsert = useUpsertRawMaterial()
   const del = useDeleteRawMaterial()
   const [editing, setEditing] = useState<Partial<RawMaterial> | null>(null)
+  const [addingCategory, setAddingCategory] = useState(false)
+
+  const availableCategories = useMemo(() => {
+    const set = new Set(STARTER_CATEGORIES)
+    for (const m of materials) {
+      if (m.category) set.add(m.category)
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'ru'))
+  }, [materials])
+
+  const visibleMaterials = categoryFilter ? materials.filter((m) => m.category === categoryFilter) : materials
 
   function openEdit(id: string) {
     setEditing(materials.find((m) => m.id === id) ?? EMPTY)
+    setAddingCategory(false)
   }
 
   async function handleSave() {
@@ -65,6 +83,7 @@ export function RawMaterialsPage() {
         stock_qty: Number(editing.stock_qty ?? 0),
         format: editing.format || null,
         grammage: editing.grammage === null || editing.grammage === undefined ? null : Number(editing.grammage),
+        category: editing.category || null,
       })
       setEditing(null)
     } catch (error) {
@@ -88,6 +107,18 @@ export function RawMaterialsPage() {
       <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
         <h1 className="text-2xl font-bold text-brand-ink">Склад сырья</h1>
         <div className="flex items-center gap-2">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="border border-brand-border rounded-full px-4 py-2 text-sm outline-none focus:border-brand-yellow"
+          >
+            <option value="">Все категории</option>
+            {availableCategories.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
           <input
             type="text"
             placeholder="Поиск по коду или названию…"
@@ -110,7 +141,7 @@ export function RawMaterialsPage() {
       ) : (
         <DataTable
           columns={COLUMNS}
-          items={materials}
+          items={visibleMaterials}
           keyField={(m) => m.id}
           onRowClick={(m) => openEdit(m.id)}
           emptyLabel="Материалов пока нет"
@@ -149,6 +180,49 @@ export function RawMaterialsPage() {
               value={editing.name ?? ''}
               onChange={(e) => setEditing({ ...editing, name: e.target.value })}
             />
+            <label className="flex flex-col gap-1">
+              <span className="text-sm font-medium text-brand-ink">Категория</span>
+              {addingCategory ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="Новая категория"
+                    value={editing.category ?? ''}
+                    onChange={(e) => setEditing({ ...editing, category: e.target.value })}
+                    className="flex-1 border border-brand-border rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-yellow"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setAddingCategory(false)}
+                    className="text-xs font-semibold text-brand-gray-dark hover:text-brand-ink px-2"
+                  >
+                    ← список
+                  </button>
+                </div>
+              ) : (
+                <select
+                  value={editing.category ?? ''}
+                  onChange={(e) => {
+                    if (e.target.value === NEW_CATEGORY_VALUE) {
+                      setAddingCategory(true)
+                      setEditing({ ...editing, category: '' })
+                    } else {
+                      setEditing({ ...editing, category: e.target.value })
+                    }
+                  }}
+                  className="border border-brand-border rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-yellow"
+                >
+                  <option value="">Не выбрана</option>
+                  {availableCategories.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                  <option value={NEW_CATEGORY_VALUE}>+ Новая категория…</option>
+                </select>
+              )}
+            </label>
             <div className="grid grid-cols-2 gap-3">
               <FormField
                 label="Ед. измерения"

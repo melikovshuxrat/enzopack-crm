@@ -910,6 +910,11 @@ export function OrderCalculatorPage() {
                   {printType === 'offset' && !printRate && result && result.printRate > 0 && (
                     <span className="text-[10px] text-brand-gray-dark">автоматически по тиражу — можно изменить</span>
                   )}
+                  {printType === 'offset' && !printRate && result && result.printRate === 0 && (
+                    <span className="text-[10px] text-red-600 font-medium">
+                      нет тарифа для {formatNumber(result.sheetRun)} листов — введите цену вручную выше
+                    </span>
+                  )}
                 </div>
               )}
               {printType !== 'none' && <NumField label="Клише, сум" value={plateFee} onChange={setPlateFee} money />}
@@ -918,8 +923,14 @@ export function OrderCalculatorPage() {
             {result && (
               <div className="mt-2 text-xs text-brand-gray-dark bg-brand-gray rounded-lg px-3 py-2">
                 {printType === 'none' && 'Печать не включена.'}
-                {printType === 'offset' &&
+                {printType === 'offset' && result.printRate > 0 &&
                   `Офсет: ${formatNumber(result.sheetRun)} листов × ${formatMoney(result.printRate)} = ${formatMoney(result.printOrderCost)}`}
+                {printType === 'offset' && result.printRate === 0 && (
+                  <span className="text-red-600 font-medium">
+                    Нет тарифа офсета для тиража {formatNumber(result.sheetRun)} листов — добавьте диапазон в «Настройки
+                    производства» → «Офсетная печать» или введите цену вручную в поле выше.
+                  </span>
+                )}
                 {printType === 'flexo' && `Флексопечать рассчитана по маршруту: ${formatMoney(result.printOrderCost)} за заказ.`}
                 {printType === 'service' &&
                   `Услуга печати: ${formatNumber(result.quantity)} коробок × ${formatMoney(result.printRate)} = ${formatMoney(result.printOrderCost)}`}

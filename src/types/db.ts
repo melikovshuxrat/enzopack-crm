@@ -26,6 +26,7 @@ export interface Client {
   company: string | null
   phone: string | null
   notes: string | null
+  opening_debt: number
   created_at: string
   updated_at: string
 }
@@ -36,6 +37,7 @@ export interface Supplier {
   phone: string | null
   supplies: string | null
   notes: string | null
+  opening_debt: number
   created_at: string
   updated_at: string
 }
@@ -50,6 +52,7 @@ export interface RawMaterial {
   stock_qty: number
   format: string | null
   grammage: number | null
+  category: string | null
   created_at: string
   updated_at: string
   supplier?: Pick<Supplier, 'id' | 'name'> | null

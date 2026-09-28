@@ -650,30 +650,38 @@ function EmployeeJournalTable({
     <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen px-4 md:px-8">
       <div className="overflow-x-auto border border-brand-border rounded-xl bg-white">
         <table className="border-collapse text-xs w-full">
+          {/* top-14: offsets under the site nav (sticky top-0, h-14, z-30) so
+              the journal's own header stays visible while scrolling down. */}
           <thead>
             <tr className="bg-brand-gray text-brand-gray-dark">
-              <th className="sticky left-0 bg-brand-gray px-3 py-2 text-left font-medium whitespace-nowrap">Сотрудник</th>
+              <th className="sticky left-0 top-14 z-20 bg-brand-gray px-2 py-2 font-medium w-9">№</th>
+              <th className="sticky left-9 top-14 z-20 bg-brand-gray px-3 py-2 text-left font-medium whitespace-nowrap">Сотрудник</th>
               {Array.from({ length: days }, (_, i) => i + 1).map((day) => (
                 <th
                   key={day}
-                  className={`px-1 py-2 font-medium min-w-[34px] ${`${monthKeySel}-${pad2(day)}` === today ? 'bg-brand-yellow-light text-brand-ink' : ''}`}
+                  className={`sticky top-14 z-10 px-1 py-2 font-medium min-w-[34px] ${`${monthKeySel}-${pad2(day)}` === today ? 'bg-brand-yellow-light text-brand-ink' : 'bg-brand-gray'}`}
                 >
                   {day}
                 </th>
               ))}
-              <th className="px-3 py-2 font-medium whitespace-nowrap min-w-[70px]">Часы</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap min-w-[110px]">Долг на начало</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap min-w-[110px]">Начислено</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap min-w-[130px]">Аванс</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap min-w-[130px]">На руки</th>
-              <th className="px-3 py-2 font-medium whitespace-nowrap min-w-[110px]">Долг на конец</th>
+              <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[70px]">Часы</th>
+              <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[110px]">Долг на начало</th>
+              <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[110px]">Начислено</th>
+              <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[130px]">Аванс</th>
+              <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[130px]">На руки</th>
+              <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[110px]">Долг на конец</th>
             </tr>
           </thead>
         <tbody>
           {rows.map((row, rowIndex) => (
             <tr key={row.employee.id} className="border-t border-brand-border">
+              <td className="sticky left-0 bg-white px-2 py-1.5 text-center">
+                <span className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 rounded-full bg-black/5 text-brand-gray-dark text-[10px] font-medium">
+                  {rowIndex + 1}
+                </span>
+              </td>
               <td
-                className="sticky left-0 bg-white px-3 py-1.5 whitespace-nowrap cursor-pointer hover:underline"
+                className="sticky left-9 bg-white px-3 py-1.5 whitespace-nowrap cursor-pointer hover:underline"
                 onClick={() => onEditEmployee(row.employee)}
               >
                 <div className="font-medium text-brand-ink">{row.employee.full_name}</div>

@@ -4,6 +4,7 @@ import { KpiCard } from '../components/common/KpiCard'
 import { ProductionTrendChart } from '../components/dashboard/ProductionTrendChart'
 import { ShortageTopWidget } from '../components/dashboard/ShortageTopWidget'
 import { FinanceSummaryWidget } from '../components/dashboard/FinanceSummaryWidget'
+import { DebtSummaryWidget } from '../components/dashboard/DebtSummaryWidget'
 import { useDashboardKpi, useProductionTrend, useShortageTop } from '../hooks/useDashboard'
 import { formatNumber } from '../lib/formatters'
 
@@ -43,8 +44,9 @@ export function DashboardPage() {
         <ShortageTopWidget data={shortages} />
       </div>
 
-      <div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <FinanceSummaryWidget from={range.from} to={range.to} />
+        <DebtSummaryWidget />
       </div>
     </div>
   )

@@ -11,7 +11,7 @@ import { TechCardView } from '../components/techcards/TechCardView'
 import { ORDER_STATUS_LABELS } from '../types/db'
 import type { Client } from '../types/db'
 
-const EMPTY: Partial<Client> = { name: '', company: '', phone: '', notes: '' }
+const EMPTY: Partial<Client> = { name: '', company: '', phone: '', notes: '', opening_debt: 0 }
 
 export function ClientsPage() {
   const [search, setSearch] = useState('')
@@ -153,6 +153,12 @@ export function ClientsPage() {
               label="Заметки"
               value={editing.notes ?? ''}
               onChange={(e) => setEditing({ ...editing, notes: e.target.value })}
+            />
+            <FormField
+              label="Долг на момент перехода на систему"
+              money
+              value={editing.opening_debt ?? 0}
+              onMoneyChange={(v) => setEditing({ ...editing, opening_debt: v })}
             />
 
             {editing.id && (

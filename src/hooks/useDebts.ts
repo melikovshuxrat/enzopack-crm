@@ -26,18 +26,24 @@ export function useClientBalances() {
   return useQuery({
     queryKey: ['client_balances'],
     queryFn: async () => {
-      const [{ data: orders, error: ordersError }, { data: txs, error: txError }] = await Promise.all([
-        supabase.from('orders').select('client_id, total_amount').neq('status', 'cancelled'),
-        supabase
-          .from('finance_transactions')
-          .select('related_client_id, amount')
-          .eq('type', 'income')
-          .not('related_client_id', 'is', null),
-      ])
+      const [{ data: clients, error: clientsError }, { data: orders, error: ordersError }, { data: txs, error: txError }] =
+        await Promise.all([
+          supabase.from('clients').select('id, opening_debt'),
+          supabase.from('orders').select('client_id, total_amount').neq('status', 'cancelled'),
+          supabase
+            .from('finance_transactions')
+            .select('related_client_id, amount')
+            .eq('type', 'income')
+            .not('related_client_id', 'is', null),
+        ])
+      if (clientsError) throw clientsError
       if (ordersError) throw ordersError
       if (txError) throw txError
 
       const totals: Record<string, number> = {}
+      for (const c of clients ?? []) {
+        if (Number(c.opening_debt) !== 0) totals[c.id] = Number(c.opening_debt)
+      }
       for (const o of orders ?? []) {
         totals[o.client_id] = (totals[o.client_id] ?? 0) + Number(o.total_amount)
       }
@@ -55,18 +61,24 @@ export function useSupplierBalances() {
   return useQuery({
     queryKey: ['supplier_balances'],
     queryFn: async () => {
-      const [{ data: deliveries, error: delError }, { data: txs, error: txError }] = await Promise.all([
-        supabase.from('supplier_deliveries').select('supplier_id, total_cost'),
-        supabase
-          .from('finance_transactions')
-          .select('related_supplier_id, amount')
-          .eq('type', 'expense')
-          .not('related_supplier_id', 'is', null),
-      ])
+      const [{ data: suppliers, error: suppliersError }, { data: deliveries, error: delError }, { data: txs, error: txError }] =
+        await Promise.all([
+          supabase.from('suppliers').select('id, opening_debt'),
+          supabase.from('supplier_deliveries').select('supplier_id, total_cost'),
+          supabase
+            .from('finance_transactions')
+            .select('related_supplier_id, amount')
+            .eq('type', 'expense')
+            .not('related_supplier_id', 'is', null),
+        ])
+      if (suppliersError) throw suppliersError
       if (delError) throw delError
       if (txError) throw txError
 
       const totals: Record<string, number> = {}
+      for (const s of suppliers ?? []) {
+        if (Number(s.opening_debt) !== 0) totals[s.id] = Number(s.opening_debt)
+      }
       for (const d of deliveries ?? []) {
         if (d.total_cost == null) continue
         totals[d.supplier_id] = (totals[d.supplier_id] ?? 0) + Number(d.total_cost)

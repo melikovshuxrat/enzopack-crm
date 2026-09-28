@@ -17,7 +17,7 @@ import { useSupplierBalances } from '../hooks/useDebts'
 import { useCreateFinanceTransaction } from '../hooks/useFinance'
 import type { Supplier } from '../types/db'
 
-const EMPTY: Partial<Supplier> = { name: '', phone: '', supplies: '', notes: '' }
+const EMPTY: Partial<Supplier> = { name: '', phone: '', supplies: '', notes: '', opening_debt: 0 }
 
 export function SuppliersPage() {
   const [tab, setTab] = useState<'list' | 'purchases'>('list')
@@ -277,6 +277,12 @@ export function SuppliersPage() {
               label="Заметки"
               value={editing.notes ?? ''}
               onChange={(e) => setEditing({ ...editing, notes: e.target.value })}
+            />
+            <FormField
+              label="Долг на момент перехода на систему"
+              money
+              value={editing.opening_debt ?? 0}
+              onMoneyChange={(v) => setEditing({ ...editing, opening_debt: v })}
             />
 
             {editing.id && (

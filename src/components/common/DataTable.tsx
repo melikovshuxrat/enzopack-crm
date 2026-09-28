@@ -34,7 +34,10 @@ export function DataTable<T>({
     <div className="overflow-x-auto bg-white border border-brand-border rounded-xl">
       <table className="w-full text-sm border-collapse">
         <thead>
-          <tr className="sticky top-0 bg-brand-gray text-left text-xs uppercase tracking-wide text-brand-gray-dark">
+          {/* top-14: the site nav is sticky top-0 at h-14/z-30 — without this
+              offset the table header sticks underneath it and looks hidden. */}
+          <tr className="sticky top-14 z-10 bg-brand-gray text-left text-xs uppercase tracking-wide text-brand-gray-dark">
+            <th className="px-3 py-2.5 font-semibold w-10">№</th>
             {columns.map((col) => (
               <th key={col.key} className={`px-3 py-2.5 font-semibold whitespace-nowrap ${col.className ?? ''}`}>
                 {col.header}
@@ -44,7 +47,7 @@ export function DataTable<T>({
           </tr>
         </thead>
         <tbody>
-          {items.map((item) => (
+          {items.map((item, index) => (
             <tr
               key={keyField(item)}
               onClick={onRowClick ? () => onRowClick(item) : undefined}
@@ -52,6 +55,11 @@ export function DataTable<T>({
                 onRowClick ? 'cursor-pointer hover:bg-brand-yellow-light/40' : ''
               } even:bg-brand-gray/30 transition`}
             >
+              <td className="px-3 py-2.5 align-middle">
+                <span className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1 rounded-full bg-black/5 text-brand-gray-dark text-[11px] font-medium">
+                  {index + 1}
+                </span>
+              </td>
               {columns.map((col) => (
                 <td key={col.key} className={`px-3 py-2.5 align-middle ${col.className ?? ''}`}>
                   {col.render(item)}
