@@ -644,10 +644,12 @@ function EmployeeJournalTable({
   }
 
   return (
-    <div className="overflow-x-auto border border-brand-border rounded-xl bg-white">
-      {/* border-separate, not border-collapse: sticky positioning inside a
-          collapsed-border table renders the header row out of order in
-          Chromium/WebKit — confirmed by screenshot, this is the actual bug. */}
+    // No overflow-x-auto: reproduced in an isolated test page that an
+    // overflow-x container becomes sticky's scroll-offset reference, so a
+    // non-zero `top` (clearing the site nav) shifted the header down into
+    // the table instead of pinning it — confirmed fixed by removing this
+    // and letting the page itself scroll horizontally when the table is wide.
+    <div className="border border-brand-border rounded-xl bg-white">
       <table className="border-separate border-spacing-0 text-xs w-full">
         {/* top-14: offsets under the site nav (sticky top-0, h-14, z-30) so
             the journal's own header stays visible while scrolling down. */}

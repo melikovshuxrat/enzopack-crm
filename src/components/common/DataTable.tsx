@@ -31,10 +31,13 @@ export function DataTable<T>({
   }
 
   return (
-    <div className="overflow-x-auto bg-white border border-brand-border rounded-xl">
-      {/* border-separate, not border-collapse: sticky positioning on rows/cells
-          inside a collapsed-border table renders the header in the wrong row
-          in Chromium/WebKit — a well-known table+sticky interaction bug. */}
+    // No overflow-x-auto here: an element with overflow-x set becomes the
+    // scroll container that `sticky` measures its offset against — with a
+    // non-zero `top` (needed to clear the site nav) that shifts the header
+    // down by that many pixels into the table instead of pinning it under
+    // the nav. Confirmed by reproducing it in isolation before this fix.
+    // Wide tables now scroll the page horizontally instead of a local box.
+    <div className="bg-white border border-brand-border rounded-xl">
       <table className="w-full text-sm border-separate border-spacing-0">
         <thead>
           {/* top-14: the site nav is sticky top-0 at h-14/z-30 — without this
