@@ -22,7 +22,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-gray">
-      <header className="sticky top-0 z-30 bg-brand-black text-white">
+      {/* fixed, not sticky: a wide page (Employees journal) now scrolls the
+          page horizontally, and a sticky element without left/right set
+          would scroll sideways with it. fixed pins it to the viewport on
+          every axis, so it truly never moves. */}
+      <header className="fixed top-0 left-0 right-0 z-30 bg-brand-black text-white">
         <div className="flex items-center gap-5 h-14 pl-2 pr-3 md:pl-3 md:pr-6">
           <img src={logoMark} alt="EnzoPack" className="h-10 w-auto shrink-0 object-contain" />
           <nav className="flex items-center gap-1 overflow-x-auto scrollbar-none">
@@ -46,7 +50,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className={`flex-1 p-4 md:p-8 w-full mx-auto ${isWide ? 'max-w-[1600px]' : 'max-w-6xl'}`}>{children}</main>
+      {/* pt-14: compensates for the header no longer taking up flow space
+          now that it's fixed instead of sticky. */}
+      <main className={`flex-1 pt-14 px-4 md:px-8 pb-4 md:pb-8 w-full mx-auto ${isWide ? 'max-w-[1600px]' : 'max-w-6xl'}`}>
+        {children}
+      </main>
     </div>
   )
 }
