@@ -645,7 +645,10 @@ function EmployeeJournalTable({
 
   return (
     <div className="overflow-x-auto border border-brand-border rounded-xl bg-white">
-      <table className="border-collapse text-xs w-full">
+      {/* border-separate, not border-collapse: sticky positioning inside a
+          collapsed-border table renders the header row out of order in
+          Chromium/WebKit — confirmed by screenshot, this is the actual bug. */}
+      <table className="border-separate border-spacing-0 text-xs w-full">
         {/* top-14: offsets under the site nav (sticky top-0, h-14, z-30) so
             the journal's own header stays visible while scrolling down. */}
         <thead>

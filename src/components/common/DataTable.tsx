@@ -32,7 +32,10 @@ export function DataTable<T>({
 
   return (
     <div className="overflow-x-auto bg-white border border-brand-border rounded-xl">
-      <table className="w-full text-sm border-collapse">
+      {/* border-separate, not border-collapse: sticky positioning on rows/cells
+          inside a collapsed-border table renders the header in the wrong row
+          in Chromium/WebKit — a well-known table+sticky interaction bug. */}
+      <table className="w-full text-sm border-separate border-spacing-0">
         <thead>
           {/* top-14: the site nav is sticky top-0 at h-14/z-30 — without this
               offset the table header sticks underneath it and looks hidden. */}
