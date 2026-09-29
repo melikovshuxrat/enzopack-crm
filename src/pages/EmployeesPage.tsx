@@ -585,7 +585,7 @@ function EmployeeHoursCard({
                 defaultValue={hoursByDay.get(day) || ''}
                 onFocus={(e) => e.target.select()}
                 onBlur={(e) => saveDay(day, Number(e.target.value) || 0)}
-                className="w-full border border-brand-border rounded-md px-1 py-1 text-xs text-center outline-none focus:border-brand-yellow"
+                className="w-full border border-brand-border rounded-md px-1 py-1 text-xs text-center outline-none focus:border-brand-yellow appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-inner-spin-button]:m-0"
               />
             </label>
           ))}
@@ -816,9 +816,17 @@ function EmployeeJournalTable({
                           e.preventDefault()
                           ;(e.target as HTMLInputElement).blur()
                           focusCell(day, rowIndex - 1)
+                        } else if (e.key === 'ArrowLeft') {
+                          e.preventDefault()
+                          ;(e.target as HTMLInputElement).blur()
+                          focusCell(day - 1, rowIndex)
+                        } else if (e.key === 'ArrowRight') {
+                          e.preventDefault()
+                          ;(e.target as HTMLInputElement).blur()
+                          focusCell(day + 1, rowIndex)
                         }
                       }}
-                      className={`${dayInputClass} rounded-lg text-center font-medium outline-none border transition ${
+                      className={`${dayInputClass} rounded-lg text-center font-medium outline-none border transition appearance-none [-moz-appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-inner-spin-button]:m-0 ${
                         isToday
                           ? 'bg-brand-yellow-light/60 border-brand-yellow/40'
                           : 'bg-black/[0.04] border-black/5 hover:bg-black/[0.07]'
