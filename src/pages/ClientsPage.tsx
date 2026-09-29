@@ -7,6 +7,7 @@ import { useClients, useDeleteClient, useUpsertClient } from '../hooks/useClient
 import { useClientOrders } from '../hooks/useOrders'
 import { useTechCardByOrder } from '../hooks/useTechCards'
 import { useClientBalances, useOrderPayments } from '../hooks/useDebts'
+import { DirectionalDebtField } from '../components/common/DirectionalDebtField'
 import { TechCardView } from '../components/techcards/TechCardView'
 import { ORDER_STATUS_LABELS } from '../types/db'
 import type { Client } from '../types/db'
@@ -36,7 +37,7 @@ export function ClientsPage() {
         if (debt === 0) return '—'
         return (
           <span className={debt > 0 ? 'text-green-700 font-semibold' : 'text-red-600 font-semibold'}>
-            {debt > 0 ? `Должен нам: ${formatMoney(debt)}` : `Переплата: ${formatMoney(-debt)}`}
+            {formatMoney(Math.abs(debt))}
           </span>
         )
       },
@@ -154,11 +155,12 @@ export function ClientsPage() {
               value={editing.notes ?? ''}
               onChange={(e) => setEditing({ ...editing, notes: e.target.value })}
             />
-            <FormField
+            <DirectionalDebtField
               label="Долг на момент перехода на систему"
-              money
               value={editing.opening_debt ?? 0}
-              onMoneyChange={(v) => setEditing({ ...editing, opening_debt: v })}
+              onChange={(v) => setEditing({ ...editing, opening_debt: v })}
+              positiveLabel="Клиент должен нам"
+              negativeLabel="Мы должны клиенту"
             />
 
             {editing.id && (

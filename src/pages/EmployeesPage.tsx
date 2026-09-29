@@ -14,7 +14,7 @@ import {
   useUpsertEmployee,
   useUpsertEmployeeDailyHours,
 } from '../hooks/useEmployees'
-import type { Employee, EmployeePaymentType } from '../types/db'
+import type { Employee, EmployeePaymentType, StaffType } from '../types/db'
 
 const EMPTY: Partial<Employee> = {
   full_name: '',
@@ -22,6 +22,12 @@ const EMPTY: Partial<Employee> = {
   monthly_salary: 0,
   monthly_norm_hours: 176,
   daily_norm_hours: 8,
+  staff_type: 'regular',
+}
+
+const STAFF_TYPE_LABELS: Record<StaffType, string> = {
+  regular: 'Обычный',
+  management: 'Управленческий',
 }
 
 const FILTER_MODES = [
@@ -61,6 +67,7 @@ function monthLabel(monthKeyStr: string): string {
 
 export function EmployeesPage() {
   const [search, setSearch] = useState('')
+  const [compactView, setCompactView] = useState(false)
   const { data: employees = [], isLoading } = useEmployees(search)
   const upsert = useUpsertEmployee()
   const del = useDeleteEmployee()
@@ -105,6 +112,7 @@ export function EmployeesPage() {
         monthly_salary: Number(editing.monthly_salary ?? 0),
         monthly_norm_hours: Number(editing.monthly_norm_hours ?? 176),
         daily_norm_hours: Number(editing.daily_norm_hours ?? 8),
+        staff_type: editing.staff_type ?? 'regular',
       })
       setEditing(null)
     } catch (error) {
@@ -142,6 +150,7 @@ export function EmployeesPage() {
   const columns: DataTableColumn<Employee>[] = [
     { key: 'name', header: 'Имя', render: (e) => <span className="font-medium text-brand-ink">{e.full_name}</span> },
     { key: 'position', header: 'Должность', render: (e) => e.position || '—' },
+    { key: 'staff_type', header: 'Тип', render: (e) => STAFF_TYPE_LABELS[e.staff_type] },
     { key: 'daily_norm', header: 'Часы/день', render: (e) => e.daily_norm_hours },
     { key: 'monthly_norm', header: 'Часы/месяц', render: (e) => e.monthly_norm_hours },
     { key: 'salary', header: 'Оклад', render: (e) => formatMoney(e.monthly_salary) },
@@ -278,20 +287,66 @@ export function EmployeesPage() {
             />
           </div>
         )}
+
+        {filterMode === 'month' && (
+          <div className="flex gap-1 bg-brand-gray rounded-lg p-0.5 ml-auto">
+            <button
+              type="button"
+              onClick={() => setCompactView(false)}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+                !compactView ? 'bg-white shadow-sm text-brand-ink' : 'text-brand-gray-dark'
+              }`}
+            >
+              Обычный вид
+            </button>
+            <button
+              type="button"
+              onClick={() => setCompactView(true)}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+                compactView ? 'bg-white shadow-sm text-brand-ink' : 'text-brand-gray-dark'
+              }`}
+            >
+              Уместить всё
+            </button>
+          </div>
+        )}
       </div>
 
       {isLoading ? (
         <div className="text-brand-gray-dark">Загрузка…</div>
       ) : filterMode === 'month' ? (
-        <EmployeeJournalTable
-          employees={employees}
-          year={filterYear}
-          month={filterMonth}
-          dailyHours={allDailyHours}
-          hoursHistory={allHoursHistory}
-          payments={allPayments}
-          onEditEmployee={(e) => openEdit(e.id)}
-        />
+        <>
+          <EmployeeJournalTable
+            employees={employees.filter((e) => e.staff_type !== 'management')}
+            year={filterYear}
+            month={filterMonth}
+            dailyHours={allDailyHours}
+            hoursHistory={allHoursHistory}
+            payments={allPayments}
+            onEditEmployee={(e) => openEdit(e.id)}
+            compact={compactView}
+          />
+          {(() => {
+            const management = employees.filter((e) => e.staff_type === 'management')
+            if (management.length === 0) return null
+            return (
+              <div className="mt-8">
+                <div className="text-sm font-semibold text-brand-ink mb-2">Управленческий персонал</div>
+                <EmployeeJournalTable
+                  employees={management}
+                  year={filterYear}
+                  month={filterMonth}
+                  dailyHours={allDailyHours}
+                  hoursHistory={allHoursHistory}
+                  payments={allPayments}
+                  onEditEmployee={(e) => openEdit(e.id)}
+                  compact={compactView}
+                  stickyHeader={false}
+                />
+              </div>
+            )
+          })()}
+        </>
       ) : (
         <DataTable
           columns={columns}
@@ -339,6 +394,23 @@ export function EmployeesPage() {
               value={editing.position ?? ''}
               onChange={(e) => setEditing({ ...editing, position: e.target.value })}
             />
+            <label className="flex flex-col gap-1">
+              <span className="text-sm font-medium text-brand-ink">Тип персонала</span>
+              <div className="flex gap-1 bg-brand-gray rounded-lg p-0.5 w-fit">
+                {(Object.keys(STAFF_TYPE_LABELS) as StaffType[]).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setEditing({ ...editing, staff_type: t })}
+                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${
+                      (editing.staff_type ?? 'regular') === t ? 'bg-white shadow-sm text-brand-ink' : 'text-brand-gray-dark'
+                    }`}
+                  >
+                    {STAFF_TYPE_LABELS[t]}
+                  </button>
+                ))}
+              </div>
+            </label>
             <FormField
               label="Оклад"
               money
@@ -565,6 +637,8 @@ function EmployeeJournalTable({
   hoursHistory,
   payments,
   onEditEmployee,
+  compact = false,
+  stickyHeader = true,
 }: {
   employees: Employee[]
   year: number
@@ -573,6 +647,10 @@ function EmployeeJournalTable({
   hoursHistory: { employee_id: string; month: string; hours_worked: number; salary_snapshot: number; norm_hours_snapshot: number }[]
   payments: { employee_id: string; payment_date: string; type: EmployeePaymentType; amount: number }[]
   onEditEmployee: (employee: Employee) => void
+  /** "Уместить всё" — shrinks columns to fit the whole month without horizontal scroll. */
+  compact?: boolean
+  /** Second (management) table doesn't need its own header pinned — it's short. */
+  stickyHeader?: boolean
 }) {
   const upsertDaily = useUpsertEmployeeDailyHours()
   const createPayment = useCreateEmployeePayment()
@@ -643,6 +721,20 @@ function EmployeeJournalTable({
     return <div className="text-brand-gray-dark py-10 text-center">Сотрудников пока нет</div>
   }
 
+  // "Уместить всё": table-layout:fixed + no explicit width on day columns —
+  // the browser splits whatever space is left after the fixed-width columns
+  // evenly between them, so the whole month fits without horizontal scroll.
+  const dayThClass = compact
+    ? 'px-0.5 py-1 font-medium text-[10px]'
+    : 'px-1 py-2 font-medium min-w-[44px]'
+  const trailingThClass = compact
+    ? 'px-1 py-1 font-medium text-[10px] whitespace-normal leading-tight w-14'
+    : 'px-3 py-2 font-medium whitespace-nowrap'
+  const dayTdPad = compact ? 'p-0.5' : 'p-1'
+  const dayInputClass = compact ? 'w-full h-7 text-[10px]' : 'w-10 h-9 text-sm'
+  const trailingTdClass = compact ? 'px-1 py-1 text-[10px]' : 'px-3 py-1.5'
+  const stickyTop = stickyHeader ? 'sticky top-14' : ''
+
   return (
     // No overflow-x-auto: reproduced in an isolated test page that an
     // overflow-x container becomes sticky's scroll-offset reference, so a
@@ -650,27 +742,34 @@ function EmployeeJournalTable({
     // the table instead of pinning it — confirmed fixed by removing this
     // and letting the page itself scroll horizontally when the table is wide.
     <div className="border border-brand-border rounded-xl bg-white">
-      <table className="border-separate border-spacing-0 text-xs w-full">
+      <table className={`border-separate border-spacing-0 text-xs w-full ${compact ? 'table-fixed' : ''}`}>
         {/* top-14: offsets under the site nav (sticky top-0, h-14, z-30) so
-            the journal's own header stays visible while scrolling down. */}
+            the journal's own header stays visible while scrolling down —
+            skipped entirely when stickyHeader=false (second, short table). */}
         <thead>
           <tr className="bg-brand-gray text-brand-gray-dark">
-            <th className="sticky left-0 top-14 z-20 bg-brand-gray px-2 py-2 font-medium w-9">№</th>
-            <th className="sticky left-9 top-14 z-20 bg-brand-gray px-3 py-2 text-left font-medium whitespace-nowrap">Сотрудник</th>
+            <th className={`sticky left-0 ${stickyTop} z-20 bg-brand-gray px-2 py-2 font-medium w-9`}>№</th>
+            <th
+              className={`sticky left-9 ${stickyTop} z-20 bg-brand-gray px-3 py-2 text-left font-medium ${
+                compact ? 'w-28 truncate' : 'whitespace-nowrap'
+              }`}
+            >
+              Сотрудник
+            </th>
             {Array.from({ length: days }, (_, i) => i + 1).map((day) => (
               <th
                 key={day}
-                className={`sticky top-14 z-10 px-1 py-2 font-medium min-w-[44px] ${`${monthKeySel}-${pad2(day)}` === today ? 'bg-brand-yellow-light text-brand-ink' : 'bg-brand-gray'}`}
+                className={`${stickyTop} z-10 ${dayThClass} ${`${monthKeySel}-${pad2(day)}` === today ? 'bg-brand-yellow-light text-brand-ink' : 'bg-brand-gray'}`}
               >
                 {day}
               </th>
             ))}
-            <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[70px]">Часы</th>
-            <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[110px]">Долг на начало</th>
-            <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[110px]">Начислено</th>
-            <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[130px]">Аванс</th>
-            <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[130px]">На руки</th>
-            <th className="sticky top-14 z-10 bg-brand-gray px-3 py-2 font-medium whitespace-nowrap min-w-[110px]">Долг на конец</th>
+            <th className={`${stickyTop} z-10 bg-brand-gray ${trailingThClass}`}>Часы</th>
+            <th className={`${stickyTop} z-10 bg-brand-gray ${trailingThClass}`}>Долг на начало</th>
+            <th className={`${stickyTop} z-10 bg-brand-gray ${trailingThClass}`}>Начислено</th>
+            <th className={`${stickyTop} z-10 bg-brand-gray ${trailingThClass}`}>Аванс</th>
+            <th className={`${stickyTop} z-10 bg-brand-gray ${trailingThClass}`}>На руки</th>
+            <th className={`${stickyTop} z-10 bg-brand-gray ${trailingThClass}`}>Долг на конец</th>
           </tr>
         </thead>
         <tbody>
@@ -682,16 +781,18 @@ function EmployeeJournalTable({
                 </span>
               </td>
               <td
-                className="sticky left-9 bg-white px-3 py-1.5 whitespace-nowrap cursor-pointer hover:underline"
+                className={`sticky left-9 bg-white px-3 py-1.5 cursor-pointer hover:underline ${compact ? 'truncate' : 'whitespace-nowrap'}`}
                 onClick={() => onEditEmployee(row.employee)}
               >
-                <div className="font-medium text-brand-ink">{row.employee.full_name}</div>
-                {row.employee.position && <div className="text-[10px] text-brand-gray-dark">{row.employee.position}</div>}
+                <div className="font-medium text-brand-ink truncate">{row.employee.full_name}</div>
+                {!compact && row.employee.position && (
+                  <div className="text-[10px] text-brand-gray-dark">{row.employee.position}</div>
+                )}
               </td>
               {Array.from({ length: days }, (_, i) => i + 1).map((day) => {
                 const isToday = `${monthKeySel}-${pad2(day)}` === today
                 return (
-                  <td key={day} className="p-1">
+                  <td key={day} className={dayTdPad}>
                     {/* A visible "cell" box (translucent fill, rounded), not a
                         bare number — matches the Google Sheets look asked for. */}
                     <input
@@ -717,7 +818,7 @@ function EmployeeJournalTable({
                           focusCell(day, rowIndex - 1)
                         }
                       }}
-                      className={`w-10 h-9 rounded-lg text-center text-sm font-medium outline-none border transition ${
+                      className={`${dayInputClass} rounded-lg text-center font-medium outline-none border transition ${
                         isToday
                           ? 'bg-brand-yellow-light/60 border-brand-yellow/40'
                           : 'bg-black/[0.04] border-black/5 hover:bg-black/[0.07]'
@@ -726,14 +827,15 @@ function EmployeeJournalTable({
                   </td>
                 )
               })}
-              <td className="px-3 py-1.5 text-center font-medium whitespace-nowrap min-w-[70px]">{row.totalHours.toFixed(1)}</td>
-              <td className={`px-3 py-1.5 text-center whitespace-nowrap min-w-[110px] ${row.debtBeforeMonth > 0 ? 'text-red-600' : 'text-brand-gray-dark'}`}>
+              <td className={`${trailingTdClass} text-center font-medium whitespace-nowrap`}>{row.totalHours.toFixed(1)}</td>
+              <td className={`${trailingTdClass} text-center whitespace-nowrap ${row.debtBeforeMonth > 0 ? 'text-red-600' : 'text-brand-gray-dark'}`}>
                 {row.debtBeforeMonth !== 0 ? formatMoney(row.debtBeforeMonth) : '—'}
               </td>
-              <td className="px-3 py-1.5 text-center font-medium whitespace-nowrap min-w-[110px]">{formatMoney(row.earnedThisMonth)}</td>
-              <td className="px-2 py-1.5 text-center whitespace-nowrap min-w-[130px]">
+              <td className={`${trailingTdClass} text-center font-medium whitespace-nowrap`}>{formatMoney(row.earnedThisMonth)}</td>
+              <td className={`${trailingTdClass} text-center whitespace-nowrap relative`}>
                 <PayoutCell
                   amount={row.advanceThisMonth}
+                  compact={compact}
                   onSave={(amount, comment) =>
                     createPayment.mutateAsync({
                       employee_id: row.employee.id,
@@ -745,9 +847,10 @@ function EmployeeJournalTable({
                   }
                 />
               </td>
-              <td className="px-2 py-1.5 text-center whitespace-nowrap min-w-[130px]">
+              <td className={`${trailingTdClass} text-center whitespace-nowrap relative`}>
                 <PayoutCell
                   amount={row.payoutThisMonth}
+                  compact={compact}
                   onSave={(amount, comment) =>
                     createPayment.mutateAsync({
                       employee_id: row.employee.id,
@@ -759,7 +862,7 @@ function EmployeeJournalTable({
                   }
                 />
               </td>
-              <td className={`px-3 py-1.5 text-center font-semibold whitespace-nowrap min-w-[110px] ${row.debtAfterMonth > 0 ? 'text-red-600' : 'text-green-700'}`}>
+              <td className={`${trailingTdClass} text-center font-semibold whitespace-nowrap ${row.debtAfterMonth > 0 ? 'text-red-600' : 'text-green-700'}`}>
                 {formatMoney(row.debtAfterMonth)}
               </td>
             </tr>
@@ -770,7 +873,15 @@ function EmployeeJournalTable({
   )
 }
 
-function PayoutCell({ amount, onSave }: { amount: number; onSave: (amount: number, comment: string | null) => Promise<void> }) {
+function PayoutCell({
+  amount,
+  onSave,
+  compact = false,
+}: {
+  amount: number
+  onSave: (amount: number, comment: string | null) => Promise<void>
+  compact?: boolean
+}) {
   const [open, setOpen] = useState(false)
   const [value, setValue] = useState(0)
   const [comment, setComment] = useState('')
@@ -796,7 +907,7 @@ function PayoutCell({ amount, onSave }: { amount: number; onSave: (amount: numbe
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1 mx-auto text-brand-ink hover:text-brand-yellow-dark"
+        className={compact ? 'flex flex-col items-center text-[10px] mx-auto text-brand-ink hover:text-brand-yellow-dark' : 'flex items-center gap-1 mx-auto text-brand-ink hover:text-brand-yellow-dark'}
         title="Добавить"
       >
         <span>{amount > 0 ? formatMoney(amount) : '—'}</span>
@@ -806,7 +917,13 @@ function PayoutCell({ amount, onSave }: { amount: number; onSave: (amount: numbe
   }
 
   return (
-    <div className="flex flex-col gap-1 items-stretch bg-brand-gray rounded-lg p-1.5 min-w-[110px]">
+    <div
+      className={
+        compact
+          ? 'absolute z-30 right-0 top-full mt-1 flex flex-col gap-1 items-stretch bg-white border border-brand-border shadow-lg rounded-lg p-1.5 min-w-[110px]'
+          : 'flex flex-col gap-1 items-stretch bg-brand-gray rounded-lg p-1.5 min-w-[110px]'
+      }
+    >
       <input
         type="number"
         placeholder="Сумма"

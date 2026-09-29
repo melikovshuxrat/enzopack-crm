@@ -220,6 +220,8 @@ export interface FinishedGoodsMovement {
   created_at: string
 }
 
+export type StaffType = 'regular' | 'management'
+
 export interface Employee {
   id: string
   full_name: string
@@ -228,6 +230,7 @@ export interface Employee {
   monthly_norm_hours: number
   daily_norm_hours: number
   active: boolean
+  staff_type: StaffType
   created_at: string
   updated_at: string
 }

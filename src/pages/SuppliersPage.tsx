@@ -15,6 +15,7 @@ import {
 import { useRawMaterials } from '../hooks/useRawMaterials'
 import { useSupplierBalances } from '../hooks/useDebts'
 import { useCreateFinanceTransaction } from '../hooks/useFinance'
+import { DirectionalDebtField } from '../components/common/DirectionalDebtField'
 import type { Supplier } from '../types/db'
 
 const EMPTY: Partial<Supplier> = { name: '', phone: '', supplies: '', notes: '', opening_debt: 0 }
@@ -57,7 +58,7 @@ export function SuppliersPage() {
         if (debt === 0) return '—'
         return (
           <span className={debt > 0 ? 'text-red-600 font-semibold' : 'text-green-700 font-semibold'}>
-            {debt > 0 ? `Мы должны: ${formatMoney(debt)}` : `Переплата: ${formatMoney(-debt)}`}
+            {formatMoney(Math.abs(debt))}
           </span>
         )
       },
@@ -278,11 +279,12 @@ export function SuppliersPage() {
               value={editing.notes ?? ''}
               onChange={(e) => setEditing({ ...editing, notes: e.target.value })}
             />
-            <FormField
+            <DirectionalDebtField
               label="Долг на момент перехода на систему"
-              money
               value={editing.opening_debt ?? 0}
-              onMoneyChange={(v) => setEditing({ ...editing, opening_debt: v })}
+              onChange={(v) => setEditing({ ...editing, opening_debt: v })}
+              positiveLabel="Мы должны поставщику"
+              negativeLabel="Поставщик должен нам"
             />
 
             {editing.id && (
